@@ -23,6 +23,7 @@ import { UserManagementPage } from './pages/UserManagementPage';
 import { UserManualPage } from './pages/UserManualPage';
 import { TBRegisterPage } from './pages/TBRegisterPage';
 import { TBReportsPage } from './pages/TBReportsPage';
+import { DataMigrationPage } from './pages/DataMigrationPage';
 import { MyAccountModal } from './components/auth/MyAccountModal';
 import TemplateBuilderPage from './pages/TemplateBuilderPage';
 import TemplateFieldsPage from './pages/TemplateFieldsPage';
@@ -38,6 +39,7 @@ const PHC_ONLY_PAGES: PageId[] = [
   'template-fields',
   'user-management',
   'backup-audit',
+  'data-migration',
 ];
 
 const AppContent: React.FC = () => {
@@ -130,6 +132,8 @@ const AppContent: React.FC = () => {
         return <DataValidationPage onNavigate={setCurrentPage} />;
       case 'backup-audit':
         return <BackupAuditPage />;
+      case 'data-migration':
+        return <DataMigrationPage />;
       case 'user-management':
         return <UserManagementPage onNavigate={setCurrentPage} />;
       case 'user-manual':

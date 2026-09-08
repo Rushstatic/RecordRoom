@@ -182,6 +182,14 @@ export const REPORTS_SUB_ITEMS: SubNavItem[] = [
     iconName: 'Database',
     parentTab: 'reports',
   },
+  {
+    id: 'data-migration',
+    labelMarathi: 'डेटा Migration',
+    labelEnglish: 'Data Migration & Cleanup',
+    iconName: 'ServerCrash',
+    isControllerOnly: true,
+    parentTab: 'reports',
+  },
 ];
 
 export function getParentTabForPage(page: PageId, currentTabPreference?: MainNavTabId): MainNavTabId {

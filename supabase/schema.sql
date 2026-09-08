@@ -504,5 +504,29 @@ alter table system_audit_logs enable row level security;
 create policy "Allow read for system_audit_logs" on system_audit_logs for select using (true);
 create policy "Allow insert for system_audit_logs" on system_audit_logs for insert with check (true);
 
+-- ==========================================================
+-- CODE 23 : DATA MIGRATION HISTORY
+-- ==========================================================
+create table if not exists data_migration_history (
+  id uuid primary key default uuid_generate_v4(),
+  migration_batch_id uuid not null,
+  module_name text not null,
+  local_record_id text not null,
+  supabase_record_id uuid,
+  status text not null check (status in ('IMPORTED', 'SKIPPED', 'DUPLICATE', 'INVALID', 'CONFLICT', 'FAILED')),
+  error_message text,
+  match_method text,
+  migrated_by uuid references auth.users(id),
+  migrated_at timestamptz default now()
+);
+
+create index if not exists idx_migration_batch on data_migration_history(migration_batch_id);
+create index if not exists idx_migration_module on data_migration_history(module_name);
+create index if not exists idx_migration_status on data_migration_history(status);
+
+alter table data_migration_history enable row level security;
+create policy "Allow read for data_migration_history" on data_migration_history for select using (public.is_current_user_phc_controller());
+create policy "Allow insert for data_migration_history" on data_migration_history for insert with check (public.is_current_user_phc_controller());
+
 
 

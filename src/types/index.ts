@@ -66,6 +66,7 @@ export type PageId =
   | 'user-manual'
   | 'tb-register'
   | 'tb-reports'
+  | 'data-migration'
   | 'dynamic-report';
 
 export interface NavItem {
