@@ -1,3 +1,4 @@
+import { storage } from '../lib/storage';
 import { RecordRegisterTemplate, RecordTemplateField, DynamicRecordEntry } from '../types';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
@@ -38,9 +39,9 @@ class TemplateService {
         if (!error && data) return data as RecordRegisterTemplate[];
       } catch (e) { console.warn('Supabase templates error, using local'); }
     }
-    let raw = localStorage.getItem(TEMPLATES_KEY);
+    let raw = storage.getItem(TEMPLATES_KEY);
     if (!raw) {
-      localStorage.setItem(TEMPLATES_KEY, JSON.stringify(DEFAULT_TEMPLATES));
+      storage.setItem(TEMPLATES_KEY, JSON.stringify(DEFAULT_TEMPLATES));
       return DEFAULT_TEMPLATES;
     }
     return JSON.parse(raw);
@@ -69,7 +70,7 @@ class TemplateService {
     } else {
       templates.push({ ...template, created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
     }
-    localStorage.setItem(TEMPLATES_KEY, JSON.stringify(templates));
+    storage.setItem(TEMPLATES_KEY, JSON.stringify(templates));
   }
 
   async getTemplateFields(templateId: string): Promise<RecordTemplateField[]> {
@@ -79,7 +80,7 @@ class TemplateService {
         if (!error && data) return data as RecordTemplateField[];
       } catch (e) { console.warn('Supabase fields error, using local'); }
     }
-    const raw = localStorage.getItem(TEMPLATE_FIELDS_KEY);
+    const raw = storage.getItem(TEMPLATE_FIELDS_KEY);
     if (!raw) return [];
     const fields = JSON.parse(raw) as RecordTemplateField[];
     return fields.filter(f => f.template_id === templateId).sort((a, b) => a.field_order - b.field_order);
@@ -91,7 +92,7 @@ class TemplateService {
         await supabase.from('record_template_fields').upsert({...field, updated_at: new Date().toISOString()});
       } catch (e) { console.warn('Supabase save field error, using local'); }
     }
-    let raw = localStorage.getItem(TEMPLATE_FIELDS_KEY);
+    let raw = storage.getItem(TEMPLATE_FIELDS_KEY);
     let fields = raw ? JSON.parse(raw) as RecordTemplateField[] : [];
     const index = fields.findIndex(f => f.id === field.id);
     if (index >= 0) {
@@ -99,7 +100,7 @@ class TemplateService {
     } else {
       fields.push({ ...field, created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
     }
-    localStorage.setItem(TEMPLATE_FIELDS_KEY, JSON.stringify(fields));
+    storage.setItem(TEMPLATE_FIELDS_KEY, JSON.stringify(fields));
   }
   
   async deleteTemplateField(fieldId: string): Promise<void> {
@@ -108,10 +109,10 @@ class TemplateService {
         await supabase.from('record_template_fields').delete().eq('id', fieldId);
       } catch (e) { console.warn('Supabase delete field error, using local'); }
     }
-    let raw = localStorage.getItem(TEMPLATE_FIELDS_KEY);
+    let raw = storage.getItem(TEMPLATE_FIELDS_KEY);
     let fields = raw ? JSON.parse(raw) as RecordTemplateField[] : [];
     fields = fields.filter(f => f.id !== fieldId);
-    localStorage.setItem(TEMPLATE_FIELDS_KEY, JSON.stringify(fields));
+    storage.setItem(TEMPLATE_FIELDS_KEY, JSON.stringify(fields));
   }
 
   async getDynamicRecords(templateId: string): Promise<DynamicRecordEntry[]> {
@@ -121,7 +122,7 @@ class TemplateService {
         if (!error && data) return data as DynamicRecordEntry[];
       } catch (e) { console.warn('Supabase records error, using local'); }
     }
-    const raw = localStorage.getItem(DYNAMIC_RECORDS_KEY);
+    const raw = storage.getItem(DYNAMIC_RECORDS_KEY);
     if (!raw) return [];
     const records = JSON.parse(raw) as DynamicRecordEntry[];
     return records.filter(r => r.template_id === templateId).sort((a, b) => {
@@ -135,7 +136,7 @@ class TemplateService {
         await supabase.from('dynamic_record_entries').upsert({...record, updated_at: new Date().toISOString()});
       } catch (e) { console.warn('Supabase save record error, using local'); }
     }
-    let raw = localStorage.getItem(DYNAMIC_RECORDS_KEY);
+    let raw = storage.getItem(DYNAMIC_RECORDS_KEY);
     let records = raw ? JSON.parse(raw) as DynamicRecordEntry[] : [];
     const index = records.findIndex(r => r.id === record.id);
     if (index >= 0) {
@@ -143,7 +144,7 @@ class TemplateService {
     } else {
       records.push({ ...record, created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
     }
-    localStorage.setItem(DYNAMIC_RECORDS_KEY, JSON.stringify(records));
+    storage.setItem(DYNAMIC_RECORDS_KEY, JSON.stringify(records));
   }
 }
 

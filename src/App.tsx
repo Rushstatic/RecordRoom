@@ -1,3 +1,4 @@
+import { storage } from './lib/storage';
 import DynamicReportPage from './pages/DynamicReportPage';
 import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './hooks/useAuth';
@@ -68,7 +69,7 @@ const AppContent: React.FC = () => {
       case 'send-samples':
         return <SendSamplesPage />;
       case 'dynamic-report':
-        return <DynamicReportPage onNavigate={setCurrentPage} templateId={selectedTemplateId || localStorage.getItem('selectedTemplateId') || ''} />;
+        return <DynamicReportPage onNavigate={setCurrentPage} templateId={selectedTemplateId || storage.getItem('selectedTemplateId') || ''} />;
       case 'reports':
       case 'malaria-reports':
         return <ReportsPage onNavigate={setCurrentPage} />;
@@ -87,9 +88,9 @@ const AppContent: React.FC = () => {
       case 'template-builder':
         return <TemplateBuilderPage onNavigate={setCurrentPage} onSelectTemplate={(id: string) => setSelectedTemplateId(id)} />;
       case 'template-fields':
-        return <TemplateFieldsPage onNavigate={setCurrentPage} templateId={selectedTemplateId || localStorage.getItem('selectedTemplateId') || ''} />;
+        return <TemplateFieldsPage onNavigate={setCurrentPage} templateId={selectedTemplateId || storage.getItem('selectedTemplateId') || ''} />;
       case 'dynamic-register':
-        return <DynamicRegisterPage onNavigate={setCurrentPage} templateId={selectedTemplateId || localStorage.getItem('selectedTemplateId') || ''} />;
+        return <DynamicRegisterPage onNavigate={setCurrentPage} templateId={selectedTemplateId || storage.getItem('selectedTemplateId') || ''} />;
       default:
         return <DashboardPage onNavigate={setCurrentPage} />;
     }

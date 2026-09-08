@@ -1,3 +1,4 @@
+import { storage } from '../lib/storage';
 import { PhcMaster, SubcentreMaster, VillageMaster, EmployeeMaster, DashboardMetrics } from '../types';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
@@ -147,9 +148,9 @@ const KEYS = {
 // Local storage helpers
 function getLocal<T>(key: string, fallback: T[]): T[] {
   try {
-    const raw = localStorage.getItem(key);
+    const raw = storage.getItem(key);
     if (!raw) {
-      localStorage.setItem(key, JSON.stringify(fallback));
+      storage.setItem(key, JSON.stringify(fallback));
       return fallback;
     }
     return JSON.parse(raw);
@@ -160,7 +161,7 @@ function getLocal<T>(key: string, fallback: T[]): T[] {
 
 function setLocal<T>(key: string, data: T[]) {
   try {
-    localStorage.setItem(key, JSON.stringify(data));
+    storage.setItem(key, JSON.stringify(data));
   } catch (e) {
     console.error('Error saving to localStorage', e);
   }
@@ -700,9 +701,9 @@ export const masterDataService = {
 
   // Reset database back to default demo records if needed
   resetToDefaults() {
-    localStorage.setItem(KEYS.PHC, JSON.stringify(DEFAULT_PHCS));
-    localStorage.setItem(KEYS.SUBCENTRE, JSON.stringify(DEFAULT_SUBCENTRES));
-    localStorage.setItem(KEYS.VILLAGE, JSON.stringify(DEFAULT_VILLAGES));
-    localStorage.setItem(KEYS.EMPLOYEE, JSON.stringify(DEFAULT_EMPLOYEES));
+    storage.setItem(KEYS.PHC, JSON.stringify(DEFAULT_PHCS));
+    storage.setItem(KEYS.SUBCENTRE, JSON.stringify(DEFAULT_SUBCENTRES));
+    storage.setItem(KEYS.VILLAGE, JSON.stringify(DEFAULT_VILLAGES));
+    storage.setItem(KEYS.EMPLOYEE, JSON.stringify(DEFAULT_EMPLOYEES));
   },
 };

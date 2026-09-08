@@ -1,3 +1,4 @@
+import { storage } from '../lib/storage';
 import { UserProfile, UserRole, AppUserRole } from '../types';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { auditService } from './auditService';
@@ -52,7 +53,7 @@ export const authService = {
    */
   getCurrentUser(): UserProfile {
     try {
-      const savedProfile = localStorage.getItem(STORAGE_KEY_PROFILE);
+      const savedProfile = storage.getItem(STORAGE_KEY_PROFILE);
       if (savedProfile) {
         const parsed = JSON.parse(savedProfile);
         if (parsed && parsed.id) {
@@ -63,7 +64,7 @@ export const authService = {
       // ignore JSON parse error
     }
 
-    const savedRole = localStorage.getItem(STORAGE_KEY_ROLE) as UserRole | null;
+    const savedRole = storage.getItem(STORAGE_KEY_ROLE) as UserRole | null;
     if (savedRole && DEMO_USERS[savedRole]) {
       return DEMO_USERS[savedRole];
     }
@@ -75,9 +76,9 @@ export const authService = {
    */
   async loginWithRole(role: UserRole): Promise<UserProfile> {
     const user = DEMO_USERS[role];
-    localStorage.setItem(STORAGE_KEY_ROLE, role);
-    localStorage.setItem(STORAGE_KEY_PROFILE, JSON.stringify(user));
-    localStorage.setItem(STORAGE_KEY_AUTH, 'true');
+    storage.setItem(STORAGE_KEY_ROLE, role);
+    storage.setItem(STORAGE_KEY_PROFILE, JSON.stringify(user));
+    storage.setItem(STORAGE_KEY_AUTH, 'true');
 
     auditService
       .logAction({
@@ -104,7 +105,7 @@ export const authService = {
     }
 
     // --- MASTER ADMIN BYPASS ---
-    const localMasterPass = localStorage.getItem('master_admin_password') || '123456';
+    const localMasterPass = storage.getItem('master_admin_password') || '123456';
     if (cleanId === '9730266586' && password === localMasterPass) {
        const isFirstLogin = localMasterPass === '123456';
        const masterProfile: UserProfile = {
@@ -120,9 +121,9 @@ export const authService = {
           requirePasswordChange: isFirstLogin,
        };
 
-       localStorage.setItem(STORAGE_KEY_ROLE, masterProfile.role);
-       localStorage.setItem(STORAGE_KEY_PROFILE, JSON.stringify(masterProfile));
-       localStorage.setItem(STORAGE_KEY_AUTH, 'true');
+       storage.setItem(STORAGE_KEY_ROLE, masterProfile.role);
+       storage.setItem(STORAGE_KEY_PROFILE, JSON.stringify(masterProfile));
+       storage.setItem(STORAGE_KEY_AUTH, 'true');
 
        auditService.logAction({
          action: 'LOGIN',
@@ -192,9 +193,9 @@ export const authService = {
           }
 
           const hydratedUser = await userService.hydrateUserProfile(profileEntity);
-          localStorage.setItem(STORAGE_KEY_ROLE, hydratedUser.role);
-          localStorage.setItem(STORAGE_KEY_PROFILE, JSON.stringify(hydratedUser));
-          localStorage.setItem(STORAGE_KEY_AUTH, 'true');
+          storage.setItem(STORAGE_KEY_ROLE, hydratedUser.role);
+          storage.setItem(STORAGE_KEY_PROFILE, JSON.stringify(hydratedUser));
+          storage.setItem(STORAGE_KEY_AUTH, 'true');
 
           auditService.logAction({
             action: 'LOGIN',
@@ -243,9 +244,9 @@ export const authService = {
 
     // Successful Login
     const hydratedUser = await userService.hydrateUserProfile(profileEntity);
-    localStorage.setItem(STORAGE_KEY_ROLE, hydratedUser.role);
-    localStorage.setItem(STORAGE_KEY_PROFILE, JSON.stringify(hydratedUser));
-    localStorage.setItem(STORAGE_KEY_AUTH, 'true');
+    storage.setItem(STORAGE_KEY_ROLE, hydratedUser.role);
+    storage.setItem(STORAGE_KEY_PROFILE, JSON.stringify(hydratedUser));
+    storage.setItem(STORAGE_KEY_AUTH, 'true');
 
     auditService.logAction({
       action: 'LOGIN',
@@ -284,8 +285,8 @@ export const authService = {
       }
     }
 
-    localStorage.removeItem(STORAGE_KEY_ROLE);
-    localStorage.removeItem(STORAGE_KEY_PROFILE);
-    localStorage.setItem(STORAGE_KEY_AUTH, 'false');
+    storage.removeItem(STORAGE_KEY_ROLE);
+    storage.removeItem(STORAGE_KEY_PROFILE);
+    storage.setItem(STORAGE_KEY_AUTH, 'false');
   },
 };

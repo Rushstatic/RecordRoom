@@ -1,3 +1,4 @@
+import { storage } from '../lib/storage';
 import { MalariaTarget, TargetType } from '../types';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { masterDataService } from './masterDataService';
@@ -104,15 +105,15 @@ export const targetService = {
 
   getLocalTargets(filter?: TargetFilter): MalariaTarget[] {
     try {
-      let raw = localStorage.getItem(STORAGE_KEY);
+      let raw = storage.getItem(STORAGE_KEY);
     if (raw && raw.includes('tgt-phc-2026-m09')) {
       const parsed = JSON.parse(raw).filter((t: any) => !['tgt-phc-2026-m09', 'tgt-sc-2026-m09', 'tgt-vil-2026-m09-01', 'tgt-emp-2026-m09-01', 'tgt-emp-2026-m09-02', 'tgt-sc-2026-yearly'].includes(t.id));
       raw = JSON.stringify(parsed);
-      localStorage.setItem(STORAGE_KEY, raw);
+      storage.setItem(STORAGE_KEY, raw);
     }
       let list: MalariaTarget[] = raw ? JSON.parse(raw) : [...DEFAULT_TARGETS];
       if (!raw) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+        storage.setItem(STORAGE_KEY, JSON.stringify(list));
       }
 
       if (filter) {
@@ -356,7 +357,7 @@ export const targetService = {
         ...data,
         updated_at: new Date().toISOString(),
       };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(localList));
+      storage.setItem(STORAGE_KEY, JSON.stringify(localList));
       return { data: localList[idx], error: null };
     }
 
@@ -386,7 +387,7 @@ export const targetService = {
     try {
       const list = this.getLocalTargets();
       list.unshift(item);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+      storage.setItem(STORAGE_KEY, JSON.stringify(list));
     } catch (e) {
       console.error(e);
     }
@@ -398,7 +399,7 @@ export const targetService = {
       const idx = list.findIndex((t) => t.id === id);
       if (idx >= 0) {
         list[idx] = { ...list[idx], ...item };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+        storage.setItem(STORAGE_KEY, JSON.stringify(list));
       }
     } catch (e) {
       console.error(e);
@@ -409,7 +410,7 @@ export const targetService = {
     try {
       const list = this.getLocalTargets();
       const filtered = list.filter((t) => t.id !== id);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+      storage.setItem(STORAGE_KEY, JSON.stringify(filtered));
     } catch (e) {
       console.error(e);
     }

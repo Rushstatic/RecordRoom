@@ -1,3 +1,4 @@
+import { storage } from '../lib/storage';
 import React, { useState, useEffect } from 'react';
 import { RecordRegisterTemplate, PageId } from '../types';
 import { templateService } from '../services/templateService';
@@ -131,7 +132,7 @@ export default function TemplateBuilderPage({
                     </button>
                     <button
                       onClick={() => {
-                        onSelectTemplate(t.id); localStorage.setItem('selectedTemplateId', t.id);
+                        onSelectTemplate(t.id); storage.setItem('selectedTemplateId', t.id);
                         onNavigate('template-fields');
                       }}
                       className="text-emerald-600 hover:text-emerald-800 font-medium inline-flex items-center gap-1"

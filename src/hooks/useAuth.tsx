@@ -1,3 +1,4 @@
+import { storage } from '../lib/storage';
 import { useState, useEffect, useCallback, createContext, useContext, ReactNode } from 'react';
 import React from 'react';
 import { UserProfile, UserRole } from '../types';
@@ -27,7 +28,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   });
 
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
-    const hasSession = localStorage.getItem('arogya_is_logged_in');
+    const hasSession = storage.getItem('arogya_is_logged_in');
     return hasSession !== 'false';
   });
 
@@ -54,14 +55,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             const hydrated = await userService.hydrateUserProfile(profile);
             setUser(hydrated);
             setIsLoggedIn(true);
-            localStorage.setItem('arogya_is_logged_in', 'true');
+            storage.setItem('arogya_is_logged_in', 'true');
           }
         } catch (e) {
           console.warn('Error loading auth profile on state change:', e);
         }
       } else if (event === 'SIGNED_OUT') {
         setIsLoggedIn(false);
-        localStorage.setItem('arogya_is_logged_in', 'false');
+        storage.setItem('arogya_is_logged_in', 'false');
       }
     });
 
@@ -92,9 +93,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const switchRole = useCallback((newRole: UserRole) => {
     const newUser = DEMO_USERS[newRole];
-    localStorage.setItem('arogya_current_user_role', newRole);
-    localStorage.setItem('arogya_current_user_profile', JSON.stringify(newUser));
-    localStorage.setItem('arogya_is_logged_in', 'true');
+    storage.setItem('arogya_current_user_role', newRole);
+    storage.setItem('arogya_current_user_profile', JSON.stringify(newUser));
+    storage.setItem('arogya_is_logged_in', 'true');
     setUser(newUser);
     setIsLoggedIn(true);
   }, []);

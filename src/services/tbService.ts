@@ -1,3 +1,4 @@
+import { storage } from '../lib/storage';
 import { TBPatientRecord, GenderType, TBSampleType, TBSampleGivenAt } from '../types';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { masterDataService } from './masterDataService';
@@ -27,12 +28,12 @@ export const getTodayDateString = (): string => {
 };
 
 function getLocalData(): TBPatientRecord[] {
-  const data = localStorage.getItem(STORAGE_KEY);
+  const data = storage.getItem(STORAGE_KEY);
   return data ? JSON.parse(data) : DEFAULT_SAMPLES;
 }
 
 function setLocalData(data: TBPatientRecord[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  storage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
 class TBService {

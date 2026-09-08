@@ -1,3 +1,4 @@
+import { storage } from '../lib/storage';
 import { UserProfileEntity, UserProfile, AppUserRole, UserRole } from '../types';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { auditService } from './auditService';
@@ -92,7 +93,7 @@ export const userService = {
           .order('created_at', { ascending: false });
 
         if (!error && data && data.length > 0) {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+          storage.setItem(STORAGE_KEY, JSON.stringify(data));
           return data as UserProfileEntity[];
         }
       } catch (err) {
@@ -100,9 +101,9 @@ export const userService = {
       }
     }
 
-    const saved = localStorage.getItem(STORAGE_KEY);
+    const saved = storage.getItem(STORAGE_KEY);
     if (!saved) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_USER_PROFILES));
+      storage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_USER_PROFILES));
       return DEFAULT_USER_PROFILES;
     }
 
@@ -268,7 +269,7 @@ export const userService = {
     };
 
     const updatedList = [newProfile, ...profiles];
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedList));
+    storage.setItem(STORAGE_KEY, JSON.stringify(updatedList));
 
     if (isSupabaseConfigured() && supabase) {
       try {
@@ -320,7 +321,7 @@ export const userService = {
     target.is_active = isActive;
     target.updated_at = now;
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(profiles));
+    storage.setItem(STORAGE_KEY, JSON.stringify(profiles));
 
     if (isSupabaseConfigured() && supabase) {
       try {
@@ -365,7 +366,7 @@ export const userService = {
     target.role = newRole;
     target.updated_at = new Date().toISOString();
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(profiles));
+    storage.setItem(STORAGE_KEY, JSON.stringify(profiles));
 
     if (isSupabaseConfigured() && supabase) {
       try {
@@ -400,7 +401,7 @@ export const userService = {
     
     // For master admin
     if (cleanId === '9730266586' || cleanId === 'admin@arogya.gov.in') {
-      localStorage.setItem('master_admin_password', newPassword);
+      storage.setItem('master_admin_password', newPassword);
       return true;
     }
 
@@ -463,10 +464,10 @@ export const userService = {
 
     // --- MASTER ADMIN BYPASS ---
     if (currentUser.id === 'master-admin-001') {
-      localStorage.setItem('master_admin_password', newPassword);
+      storage.setItem('master_admin_password', newPassword);
       
       currentUser.requirePasswordChange = false;
-      localStorage.setItem('arogya_current_user_profile', JSON.stringify(currentUser));
+      storage.setItem('arogya_current_user_profile', JSON.stringify(currentUser));
       
       auditService.logAction({
         action: 'UPDATE',

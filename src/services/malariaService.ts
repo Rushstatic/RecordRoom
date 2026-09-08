@@ -1,3 +1,4 @@
+import { storage } from '../lib/storage';
 import { MalariaBloodSample, GenderType } from '../types';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { masterDataService } from './masterDataService';
@@ -337,16 +338,16 @@ export const malariaService = {
     }
 
     // 2. LocalStorage Fallback with Master data join
-    let raw = localStorage.getItem(STORAGE_KEY);
+    let raw = storage.getItem(STORAGE_KEY);
     if (raw && raw.includes('m-samp-001')) {
       const parsed = JSON.parse(raw).filter((s: any) => !['m-samp-001', 'm-samp-002', 'm-samp-003'].includes(s.id));
       raw = JSON.stringify(parsed);
-      localStorage.setItem(STORAGE_KEY, raw);
+      storage.setItem(STORAGE_KEY, raw);
     }
     let list: MalariaBloodSample[] = raw ? JSON.parse(raw) : [];
     if (list.length === 0) {
       list = DEFAULT_SAMPLES;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+      storage.setItem(STORAGE_KEY, JSON.stringify(list));
     }
 
     // Fetch master records to ensure join names are up-to-date
@@ -471,7 +472,7 @@ export const malariaService = {
     }
 
     // 2. LocalStorage calculation
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = storage.getItem(STORAGE_KEY);
     const list: MalariaBloodSample[] = raw ? JSON.parse(raw) : DEFAULT_SAMPLES;
     const empSamples = list.filter(
       (s) => s.employee_id === employeeId && Number(s.sample_year) === Number(sampleYear)
@@ -601,7 +602,7 @@ export const malariaService = {
     }
 
     // 2. Save in LocalStorage cache
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = storage.getItem(STORAGE_KEY);
     const list: MalariaBloodSample[] = raw ? JSON.parse(raw) : DEFAULT_SAMPLES;
     
     // Ensure uniqueness in local store as well
@@ -617,7 +618,7 @@ export const malariaService = {
     }
 
     list.unshift(recordToInsert);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    storage.setItem(STORAGE_KEY, JSON.stringify(list));
 
     return recordToInsert;
   },
@@ -650,7 +651,7 @@ export const malariaService = {
     }
 
     // 2. LocalStorage
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = storage.getItem(STORAGE_KEY);
     let list: MalariaBloodSample[] = raw ? JSON.parse(raw) : DEFAULT_SAMPLES;
     list = list.map((item) => {
       if (item.id === id) {
@@ -662,7 +663,7 @@ export const malariaService = {
       }
       return item;
     });
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    storage.setItem(STORAGE_KEY, JSON.stringify(list));
   },
 
   /**
@@ -698,7 +699,7 @@ export const malariaService = {
 
     // 2. LocalStorage Update
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = storage.getItem(STORAGE_KEY);
       let list: MalariaBloodSample[] = raw ? JSON.parse(raw) : DEFAULT_SAMPLES;
       list = list.map((item) => {
         if (sampleIds.includes(item.id)) {
@@ -710,7 +711,7 @@ export const malariaService = {
         }
         return item;
       });
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+      storage.setItem(STORAGE_KEY, JSON.stringify(list));
       return true;
     } catch (err) {
       console.error('LocalStorage markSamplesAsSent failed:', err);
@@ -733,10 +734,10 @@ export const malariaService = {
     }
 
     // 2. LocalStorage
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = storage.getItem(STORAGE_KEY);
     let list: MalariaBloodSample[] = raw ? JSON.parse(raw) : DEFAULT_SAMPLES;
     list = list.filter((s) => s.id !== id);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    storage.setItem(STORAGE_KEY, JSON.stringify(list));
     return true;
   },
 

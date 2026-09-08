@@ -1,3 +1,4 @@
+import { storage } from '../lib/storage';
 import { OfflineMalariaDraft, OfflineTBDraft, OfflineSyncStatus, SyncStats, UserProfile, MalariaBloodSample, TBPatientRecord } from '../types';
 import { tbService } from './tbService';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
@@ -33,7 +34,7 @@ export const offlineDraftService = {
    */
   getTBDrafts(user?: UserProfile | null): OfflineTBDraft[] {
     try {
-      const raw = localStorage.getItem(TB_DRAFTS_STORAGE_KEY);
+      const raw = storage.getItem(TB_DRAFTS_STORAGE_KEY);
       if (!raw) return [];
       const drafts: OfflineTBDraft[] = JSON.parse(raw);
       if (!user) return drafts;
@@ -61,14 +62,14 @@ export const offlineDraftService = {
       },
     };
     drafts.push(draft);
-    localStorage.setItem(TB_DRAFTS_STORAGE_KEY, JSON.stringify(drafts));
+    storage.setItem(TB_DRAFTS_STORAGE_KEY, JSON.stringify(drafts));
     notifySyncStatusChanged();
   },
 
   removeTBDraft(draftId: string): void {
     const drafts = this.getTBDrafts();
     const updated = drafts.filter((d) => d.draftId !== draftId);
-    localStorage.setItem(TB_DRAFTS_STORAGE_KEY, JSON.stringify(updated));
+    storage.setItem(TB_DRAFTS_STORAGE_KEY, JSON.stringify(updated));
     notifySyncStatusChanged();
   },
 
@@ -103,7 +104,7 @@ export const offlineDraftService = {
 
   getDrafts(user?: UserProfile | null): OfflineMalariaDraft[] {
     try {
-      const raw = localStorage.getItem(DRAFTS_STORAGE_KEY);
+      const raw = storage.getItem(DRAFTS_STORAGE_KEY);
       if (!raw) return [];
       const drafts: OfflineMalariaDraft[] = JSON.parse(raw);
 
@@ -136,7 +137,7 @@ export const offlineDraftService = {
    */
   getAllRawDrafts(): OfflineMalariaDraft[] {
     try {
-      const raw = localStorage.getItem(DRAFTS_STORAGE_KEY);
+      const raw = storage.getItem(DRAFTS_STORAGE_KEY);
       return raw ? JSON.parse(raw) : [];
     } catch {
       return [];
@@ -213,7 +214,7 @@ export const offlineDraftService = {
       allDrafts.unshift(draftRecord);
     }
 
-    localStorage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(allDrafts));
+    storage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(allDrafts));
     notifySyncStatusChanged();
     return draftRecord;
   },
@@ -224,7 +225,7 @@ export const offlineDraftService = {
   deleteDraft(localId: string): boolean {
     const allDrafts = this.getAllRawDrafts();
     const filtered = allDrafts.filter((d) => d.local_id !== localId);
-    localStorage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(filtered));
+    storage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(filtered));
     notifySyncStatusChanged();
     return true;
   },
@@ -246,7 +247,7 @@ export const offlineDraftService = {
       updated_at: new Date().toISOString(),
     };
 
-    localStorage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(allDrafts));
+    storage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(allDrafts));
     notifySyncStatusChanged();
     return allDrafts[idx];
   },
@@ -256,7 +257,7 @@ export const offlineDraftService = {
    */
   getSyncStats(user?: UserProfile | null): SyncStats {
     const drafts = this.getDrafts(user);
-    const lastSyncTime = localStorage.getItem(LAST_SYNC_KEY);
+    const lastSyncTime = storage.getItem(LAST_SYNC_KEY);
 
     let pending = 0;
     let syncing = 0;
@@ -349,7 +350,7 @@ export const offlineDraftService = {
             last_error: null,
           });
 
-          localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
+          storage.setItem(LAST_SYNC_KEY, new Date().toISOString());
           notifySyncStatusChanged();
 
           return {
@@ -451,7 +452,7 @@ export const offlineDraftService = {
                 user: currentUser,
               });
 
-              localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
+              storage.setItem(LAST_SYNC_KEY, new Date().toISOString());
               notifySyncStatusChanged();
 
               return {
@@ -494,7 +495,7 @@ export const offlineDraftService = {
           user: currentUser,
         });
 
-        localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
+        storage.setItem(LAST_SYNC_KEY, new Date().toISOString());
         notifySyncStatusChanged();
 
         return {
@@ -548,7 +549,7 @@ export const offlineDraftService = {
           user: currentUser,
         });
 
-        localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
+        storage.setItem(LAST_SYNC_KEY, new Date().toISOString());
         notifySyncStatusChanged();
 
         return {
@@ -610,7 +611,7 @@ export const offlineDraftService = {
     }
 
     if (synced > 0) {
-      localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
+      storage.setItem(LAST_SYNC_KEY, new Date().toISOString());
     }
 
     notifySyncStatusChanged();

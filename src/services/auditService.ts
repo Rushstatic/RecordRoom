@@ -1,3 +1,4 @@
+import { storage } from '../lib/storage';
 import {
   SystemAuditLog,
   AuditAction,
@@ -198,9 +199,9 @@ export const auditService = {
    */
   getRawLogs(): SystemAuditLog[] {
     try {
-      const raw = localStorage.getItem(AUDIT_STORAGE_KEY);
+      const raw = storage.getItem(AUDIT_STORAGE_KEY);
       if (!raw) {
-        localStorage.setItem(AUDIT_STORAGE_KEY, JSON.stringify(INITIAL_AUDIT_LOGS));
+        storage.setItem(AUDIT_STORAGE_KEY, JSON.stringify(INITIAL_AUDIT_LOGS));
         return INITIAL_AUDIT_LOGS;
       }
       return JSON.parse(raw);
@@ -321,7 +322,7 @@ export const auditService = {
       if (logs.length > 2000) {
         logs.length = 2000;
       }
-      localStorage.setItem(AUDIT_STORAGE_KEY, JSON.stringify(logs));
+      storage.setItem(AUDIT_STORAGE_KEY, JSON.stringify(logs));
     } catch (e) {
       console.warn('Failed to save audit log to localStorage:', e);
     }
@@ -417,9 +418,9 @@ export const auditService = {
 
   getBackupHistory(): BackupHistoryItem[] {
     try {
-      const raw = localStorage.getItem(BACKUP_HISTORY_KEY);
+      const raw = storage.getItem(BACKUP_HISTORY_KEY);
       if (!raw) {
-        localStorage.setItem(BACKUP_HISTORY_KEY, JSON.stringify(INITIAL_BACKUP_HISTORY));
+        storage.setItem(BACKUP_HISTORY_KEY, JSON.stringify(INITIAL_BACKUP_HISTORY));
         return INITIAL_BACKUP_HISTORY;
       }
       return JSON.parse(raw);
@@ -511,7 +512,7 @@ export const auditService = {
       history.unshift(historyItem);
       // Keep up to 50 backups in history
       if (history.length > 50) history.length = 50;
-      localStorage.setItem(BACKUP_HISTORY_KEY, JSON.stringify(history));
+      storage.setItem(BACKUP_HISTORY_KEY, JSON.stringify(history));
     } catch (e) {
       console.warn('Failed to save backup history:', e);
     }
@@ -620,26 +621,26 @@ export const auditService = {
 
       // Master Data
       if (Array.isArray(data.phc_master)) {
-        localStorage.setItem('arogya_phc_master', JSON.stringify(data.phc_master));
+        storage.setItem('arogya_phc_master', JSON.stringify(data.phc_master));
       }
       if (Array.isArray(data.subcentre_master)) {
-        localStorage.setItem('arogya_subcentre_master', JSON.stringify(data.subcentre_master));
+        storage.setItem('arogya_subcentre_master', JSON.stringify(data.subcentre_master));
       }
       if (Array.isArray(data.village_master)) {
-        localStorage.setItem('arogya_village_master', JSON.stringify(data.village_master));
+        storage.setItem('arogya_village_master', JSON.stringify(data.village_master));
       }
       if (Array.isArray(data.employee_master)) {
-        localStorage.setItem('arogya_employee_master', JSON.stringify(data.employee_master));
+        storage.setItem('arogya_employee_master', JSON.stringify(data.employee_master));
       }
 
       // Blood samples
       if (Array.isArray(data.malaria_blood_samples)) {
-        localStorage.setItem('arogya_malaria_samples', JSON.stringify(data.malaria_blood_samples));
+        storage.setItem('arogya_malaria_samples', JSON.stringify(data.malaria_blood_samples));
       }
 
       // Targets
       if (Array.isArray(data.malaria_targets)) {
-        localStorage.setItem('arogya_malaria_targets', JSON.stringify(data.malaria_targets));
+        storage.setItem('arogya_malaria_targets', JSON.stringify(data.malaria_targets));
       }
 
       // System audit logs - merge restored logs with existing
@@ -652,7 +653,7 @@ export const auditService = {
             merged.push(log);
           }
         }
-        localStorage.setItem(AUDIT_STORAGE_KEY, JSON.stringify(merged));
+        storage.setItem(AUDIT_STORAGE_KEY, JSON.stringify(merged));
       }
 
       // 3. Log the RESTORE action

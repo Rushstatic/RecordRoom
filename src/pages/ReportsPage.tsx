@@ -1,3 +1,4 @@
+import { storage } from '../lib/storage';
 import React, { useState, useEffect } from 'react';
 import { MalariaReportsPage } from './MalariaReportsPage';
 import { PageId, RecordRegisterTemplate } from '../types';
@@ -33,7 +34,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ onNavigate }) => {
                 <button
                   key={t.id}
                   onClick={() => {
-                    localStorage.setItem('selectedTemplateId', t.id);
+                    storage.setItem('selectedTemplateId', t.id);
                     if (onNavigate) onNavigate('dynamic-report');
                   }}
                   className="group relative overflow-hidden bg-gradient-to-br from-indigo-50 to-indigo-100/50 p-5 rounded-2xl border border-indigo-100 text-left hover:shadow-md transition-all duration-300 flex items-center justify-between"
