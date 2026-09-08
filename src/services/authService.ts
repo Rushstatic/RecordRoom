@@ -12,39 +12,39 @@ const STORAGE_KEY_AUTH = 'arogya_is_logged_in';
 // Standard demo users for quick role switching / fallback in demo mode
 export const DEMO_USERS: Record<UserRole, UserProfile> = {
   phc_controller: {
-    id: 'u0111111-1111-4111-8111-111111111111',
-    authUserId: 'auth-phc-001',
+    id: 'c1000000-0000-4000-8000-000000000001',
+    authUserId: '550e8400-e29b-41d4-a716-446655440101',
     name: 'Dr. Amol S. Patil',
     marathiName: 'डॉ. अमोल एस. पाटील',
     role: 'phc_controller',
     roleTitleMarathi: 'प्रा.आ.के. नियंत्रक / वैद्यकीय अधिकारी',
     email: 'phbhada@gmail.com',
     phone: '9822012345',
-    assignedPhc: 'प्राथमिक आरोग्य केंद्र, वडगाव',
+    assignedPhc: 'प्राथमिक आरोग्य केंद्र भादा',
     assignedSubcentre: 'सर्व उपकेंद्रे',
-    phcId: 'e0111111-1111-4111-8111-111111111111',
+    phcId: '9dc0d6cf-d4fe-4554-a5ec-7d4f63a5d8da',
     isActive: true,
-    taluka: 'शिरूर',
-    district: 'पुणे',
+    taluka: 'औसा',
+    district: 'लातूर',
   },
   subcentre_employee: {
-    id: 'u0222222-2222-4222-8222-222222222222',
-    authUserId: 'auth-sc-002',
-    employeeId: 'emp11111-1111-4111-8111-111111111111',
+    id: 'c2000000-0000-4000-8000-000000000002',
+    authUserId: '550e8400-e29b-41d4-a716-446655440102',
+    employeeId: '01258fa4-ab98-47e1-884d-28caea471416',
     name: 'Sunita M. Kamble',
     marathiName: 'सौ. सुनिता एम. कांबळे',
     role: 'subcentre_employee',
     roleTitleMarathi: 'आरोग्य सेविका (ANM)',
     email: 'anm.vadgaon1@arogya.gov.in',
     phone: '9765098765',
-    assignedPhc: 'प्राथमिक आरोग्य केंद्र, वडगाव',
-    assignedSubcentre: 'आरोग्य उपकेंद्र, जातेगाव',
-    phcId: 'e0111111-1111-4111-8111-111111111111',
-    subcentreId: 's0111111-1111-4111-8111-111111111111',
-    smearCode: 'JTG-ANM-1',
+    assignedPhc: 'प्राथमिक आरोग्य केंद्र भादा',
+    assignedSubcentre: 'शिवली',
+    phcId: '9dc0d6cf-d4fe-4554-a5ec-7d4f63a5d8da',
+    subcentreId: '4e6bf085-07e6-4c93-b366-5fb61fd1c618',
+    smearCode: '54V3',
     isActive: true,
-    taluka: 'शिरूर',
-    district: 'पुणे',
+    taluka: 'औसा',
+    district: 'लातूर',
   },
 };
 
@@ -112,19 +112,22 @@ export const authService = {
       throw new Error('कृपया ईमेल किंवा मोबाईल नंबर प्रविष्ट करा.');
     }
 
-    // --- MASTER ADMIN BYPASS ---
+    // --- MASTER ADMIN AUTHENTICATION ---
     const localMasterPass = storage.getItem('master_admin_password') || '123456';
     if (cleanId === '9730266586' && password === localMasterPass) {
        const isFirstLogin = localMasterPass === '123456';
        const masterProfile: UserProfile = {
-          id: 'master-admin-001',
-          authUserId: 'auth-master-001',
+          id: 'a0000000-0000-4000-8000-000000000001',
+          authUserId: '550e8400-e29b-41d4-a716-446655440100',
           role: 'phc_controller',
           name: 'Master Admin',
           marathiName: 'मुख्य प्रशासक',
           roleTitleMarathi: 'मुख्य प्रशासक (Master Admin)',
           email: 'admin@arogya.gov.in',
           phone: '9730266586',
+          assignedPhc: 'प्राथमिक आरोग्य केंद्र भादा',
+          assignedSubcentre: 'सर्व उपकेंद्रे',
+          phcId: '9dc0d6cf-d4fe-4554-a5ec-7d4f63a5d8da',
           isActive: true,
           requirePasswordChange: isFirstLogin,
        };

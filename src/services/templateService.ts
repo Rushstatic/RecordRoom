@@ -70,10 +70,17 @@ class TemplateService {
 
   async saveTemplate(template: RecordRegisterTemplate): Promise<void> {
     if (isSupabaseConfigured() && supabase) {
-      try {
-        await supabase.from('record_register_templates').upsert({...template, updated_at: new Date().toISOString()});
-      } catch (e) { console.warn('Supabase save error, using local'); }
+      const { error } = await supabase.from('record_register_templates').upsert({...template, updated_at: new Date().toISOString()});
+      if (error) {
+        console.error('Supabase save template error:', error);
+        if (!isDemoMode()) {
+          throw new Error(`नोंदवही टेम्पलेट जतन करता आले नाही: ${error.message}`);
+        }
+      }
+    } else if (!isDemoMode()) {
+      throw new Error('Supabase कॉन्फिगर केलेले नाही.');
     }
+
     const templates = await this.getTemplates();
     const index = templates.findIndex(t => t.id === template.id);
     if (index >= 0) {
@@ -99,10 +106,17 @@ class TemplateService {
 
   async saveTemplateField(field: RecordTemplateField): Promise<void> {
     if (isSupabaseConfigured() && supabase) {
-      try {
-        await supabase.from('record_template_fields').upsert({...field, updated_at: new Date().toISOString()});
-      } catch (e) { console.warn('Supabase save field error, using local'); }
+      const { error } = await supabase.from('record_template_fields').upsert({...field, updated_at: new Date().toISOString()});
+      if (error) {
+        console.error('Supabase save field error:', error);
+        if (!isDemoMode()) {
+          throw new Error(`नोंदवही फील्ड जतन करता आले नाही: ${error.message}`);
+        }
+      }
+    } else if (!isDemoMode()) {
+      throw new Error('Supabase कॉन्फिगर केलेले नाही.');
     }
+
     let raw = storage.getItem(TEMPLATE_FIELDS_KEY);
     let fields = raw ? JSON.parse(raw) as RecordTemplateField[] : [];
     const index = fields.findIndex(f => f.id === field.id);
@@ -116,10 +130,17 @@ class TemplateService {
   
   async deleteTemplateField(fieldId: string): Promise<void> {
     if (isSupabaseConfigured() && supabase) {
-      try {
-        await supabase.from('record_template_fields').delete().eq('id', fieldId);
-      } catch (e) { console.warn('Supabase delete field error, using local'); }
+      const { error } = await supabase.from('record_template_fields').delete().eq('id', fieldId);
+      if (error) {
+        console.error('Supabase delete field error:', error);
+        if (!isDemoMode()) {
+          throw new Error(`नोंदवही फील्ड हटवता आले नाही: ${error.message}`);
+        }
+      }
+    } else if (!isDemoMode()) {
+      throw new Error('Supabase कॉन्फिगर केलेले नाही.');
     }
+
     let raw = storage.getItem(TEMPLATE_FIELDS_KEY);
     let fields = raw ? JSON.parse(raw) as RecordTemplateField[] : [];
     fields = fields.filter(f => f.id !== fieldId);
@@ -143,10 +164,17 @@ class TemplateService {
 
   async saveDynamicRecord(record: DynamicRecordEntry): Promise<void> {
     if (isSupabaseConfigured() && supabase) {
-      try {
-        await supabase.from('dynamic_record_entries').upsert({...record, updated_at: new Date().toISOString()});
-      } catch (e) { console.warn('Supabase save record error, using local'); }
+      const { error } = await supabase.from('dynamic_record_entries').upsert({...record, updated_at: new Date().toISOString()});
+      if (error) {
+        console.error('Supabase save record error:', error);
+        if (!isDemoMode()) {
+          throw new Error(`डायनॅमिक नोंद जतन करता आली नाही: ${error.message}`);
+        }
+      }
+    } else if (!isDemoMode()) {
+      throw new Error('Supabase कॉन्फिगर केलेले नाही.');
     }
+
     let raw = storage.getItem(DYNAMIC_RECORDS_KEY);
     let records = raw ? JSON.parse(raw) as DynamicRecordEntry[] : [];
     const index = records.findIndex(r => r.id === record.id);

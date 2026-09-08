@@ -2,19 +2,20 @@ import { storage } from '../lib/storage';
 import { PhcMaster, SubcentreMaster, VillageMaster, EmployeeMaster, DashboardMetrics } from '../types';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { isDemoMode } from '../lib/env';
+import { assertValidUUID, isValidUUID } from '../utils/uuid';
 
-// Standard realistic Seed Data for offline / pre-Supabase setup
+// Standard realistic Seed Data matching actual Supabase records
 const DEFAULT_PHCS: PhcMaster[] = [
   {
-    id: 'e0111111-1111-4111-8111-111111111111',
-    phc_name: 'प्राथमिक आरोग्य केंद्र, वडगाव',
-    phc_code: 'PHC-PUN-014',
-    taluka: 'शिरूर',
-    district: 'पुणे',
+    id: '9dc0d6cf-d4fe-4554-a5ec-7d4f63a5d8da',
+    phc_name: 'प्राथमिक आरोग्य केंद्र भादा',
+    phc_code: 'PHC-615',
+    taluka: 'औसा',
+    district: 'लातूर',
     created_at: new Date().toISOString(),
   },
   {
-    id: 'e0222222-2222-4222-8222-222222222222',
+    id: '550e8400-e29b-41d4-a716-446655440001',
     phc_name: 'प्राथमिक आरोग्य केंद्र, शिक्रापूर',
     phc_code: 'PHC-PUN-015',
     taluka: 'शिरूर',
@@ -25,22 +26,22 @@ const DEFAULT_PHCS: PhcMaster[] = [
 
 const DEFAULT_SUBCENTRES: SubcentreMaster[] = [
   {
-    id: 's0111111-1111-4111-8111-111111111111',
-    phc_id: 'e0111111-1111-4111-8111-111111111111',
-    subcentre_name: 'आरोग्य उपकेंद्र, जातेगाव',
-    subcentre_code: 'SC-JTG-01',
+    id: '4e6bf085-07e6-4c93-b366-5fb61fd1c618',
+    phc_id: '9dc0d6cf-d4fe-4554-a5ec-7d4f63a5d8da',
+    subcentre_name: 'शिवली',
+    subcentre_code: 'SC-842',
     created_at: new Date().toISOString(),
   },
   {
-    id: 's0222222-2222-4222-8222-222222222222',
-    phc_id: 'e0111111-1111-4111-8111-111111111111',
+    id: '550e8400-e29b-41d4-a716-446655440011',
+    phc_id: '9dc0d6cf-d4fe-4554-a5ec-7d4f63a5d8da',
     subcentre_name: 'आरोग्य उपकेंद्र, तळेगाव ढमढेरे',
     subcentre_code: 'SC-TLG-02',
     created_at: new Date().toISOString(),
   },
   {
-    id: 's0333333-3333-4333-8333-333333333333',
-    phc_id: 'e0111111-1111-4111-8111-111111111111',
+    id: '550e8400-e29b-41d4-a716-446655440012',
+    phc_id: '9dc0d6cf-d4fe-4554-a5ec-7d4f63a5d8da',
     subcentre_name: 'आरोग्य उपकेंद्र, कोरेगाव मूळ',
     subcentre_code: 'SC-KRD-03',
     created_at: new Date().toISOString(),
@@ -49,32 +50,32 @@ const DEFAULT_SUBCENTRES: SubcentreMaster[] = [
 
 const DEFAULT_VILLAGES: VillageMaster[] = [
   {
-    id: 'v0111111-1111-4111-8111-111111111111',
-    subcentre_id: 's0111111-1111-4111-8111-111111111111',
-    village_name: 'जातेगाव (मुख्य)',
+    id: 'f4d995fa-8245-4922-b9d3-642cec604923',
+    subcentre_id: '4e6bf085-07e6-4c93-b366-5fb61fd1c618',
+    village_name: 'शिवली',
     population: 2850,
     total_houses: 540,
     created_at: new Date().toISOString(),
   },
   {
-    id: 'v0222222-2222-4222-8222-222222222222',
-    subcentre_id: 's0111111-1111-4111-8111-111111111111',
-    village_name: 'वाघोले (वस्ती)',
+    id: '9b74805a-25a6-4ac1-ac9e-04ca9fe1e28f',
+    subcentre_id: '4e6bf085-07e6-4c93-b366-5fb61fd1c618',
+    village_name: 'वरवडा',
     population: 1420,
     total_houses: 260,
     created_at: new Date().toISOString(),
   },
   {
-    id: 'v0333333-3333-4333-8333-333333333333',
-    subcentre_id: 's0111111-1111-4111-8111-111111111111',
-    village_name: 'पिंपळवस्ती',
+    id: 'fffb5580-a7de-4924-acef-2b459be7f273',
+    subcentre_id: '4e6bf085-07e6-4c93-b366-5fb61fd1c618',
+    village_name: 'जायफळ',
     population: 1150,
     total_houses: 190,
     created_at: new Date().toISOString(),
   },
   {
-    id: 'v0444444-4444-4444-8444-444444444444',
-    subcentre_id: 's0222222-2222-4222-8222-222222222222',
+    id: '550e8400-e29b-41d4-a716-446655440021',
+    subcentre_id: '4e6bf085-07e6-4c93-b366-5fb61fd1c618',
     village_name: 'तळेगाव ढमढेरे (मुख्य)',
     population: 3900,
     total_houses: 720,
@@ -84,41 +85,41 @@ const DEFAULT_VILLAGES: VillageMaster[] = [
 
 const DEFAULT_EMPLOYEES: EmployeeMaster[] = [
   {
-    id: 'emp11111-1111-4111-8111-111111111111',
-    subcentre_id: 's0111111-1111-4111-8111-111111111111',
-    employee_name: 'सौ. सुनिता एम. कांबळे',
-    designation: 'आरोग्य सेविका (ANM)',
-    mobile_number: '9765098765',
-    email: 'anm.vadgaon1@arogya.gov.in',
-    malaria_smear_code: 'JTG-ANM-1',
-    is_active: true,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'emp22222-2222-4222-8222-222222222222',
-    subcentre_id: 's0111111-1111-4111-8111-111111111111',
-    employee_name: 'श्री. राहुल डी. पाटील',
+    id: 'cbbe9908-d712-4f22-978b-061d7abcf42b',
+    subcentre_id: '4e6bf085-07e6-4c93-b366-5fb61fd1c618',
+    employee_name: 'श्री अनिल एकनाथ भराडे',
     designation: 'बहुउद्देशीय आरोग्य सेवक (MPW)',
     mobile_number: '9823456789',
     email: 'rahul.mpw@arogya.gov.in',
-    malaria_smear_code: 'JTG-MPW-1',
+    malaria_smear_code: '54V1',
     is_active: true,
     created_at: new Date().toISOString(),
   },
   {
-    id: 'emp33333-3333-4333-8333-333333333333',
-    subcentre_id: 's0111111-1111-4111-8111-111111111111',
+    id: '01258fa4-ab98-47e1-884d-28caea471415',
+    subcentre_id: '4e6bf085-07e6-4c93-b366-5fb61fd1c618',
     employee_name: 'डॉ. प्रियांका शिंदे',
     designation: 'समुदाय आरोग्य अधिकारी (CHO)',
     mobile_number: '9922114433',
     email: 'priyanka.cho@arogya.gov.in',
-    malaria_smear_code: 'JTG-CHO-1',
+    malaria_smear_code: '54V2',
     is_active: true,
     created_at: new Date().toISOString(),
   },
   {
-    id: 'emp44444-4444-4444-8444-444444444444',
-    subcentre_id: 's0222222-2222-4222-8222-222222222222',
+    id: '01258fa4-ab98-47e1-884d-28caea471416',
+    subcentre_id: '4e6bf085-07e6-4c93-b366-5fb61fd1c618',
+    employee_name: 'सौ. सुनिता एम. कांबळे',
+    designation: 'आरोग्य सेविका (ANM)',
+    mobile_number: '9765098765',
+    email: 'anm.vadgaon1@arogya.gov.in',
+    malaria_smear_code: '54V3',
+    is_active: true,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: '550e8400-e29b-41d4-a716-446655440031',
+    subcentre_id: '4e6bf085-07e6-4c93-b366-5fb61fd1c618',
     employee_name: 'श्रीमती अनिता मोरे',
     designation: 'आरोग्य सेविका (ANM)',
     mobile_number: '9822776655',
@@ -127,8 +128,8 @@ const DEFAULT_EMPLOYEES: EmployeeMaster[] = [
     created_at: new Date().toISOString(),
   },
   {
-    id: 'emp55555-5555-4555-8555-555555555555',
-    subcentre_id: 's0333333-3333-4333-8333-333333333333',
+    id: '550e8400-e29b-41d4-a716-446655440032',
+    subcentre_id: '4e6bf085-07e6-4c93-b366-5fb61fd1c618',
     employee_name: 'श्री. विकास एस. जाधव',
     designation: 'आरोग्य सेवक (MPW)',
     mobile_number: '9421098765',
@@ -197,8 +198,21 @@ export const masterDataService = {
           setLocal(KEYS.PHC, data);
           return data;
         }
-      } catch (e) {
-        console.warn('Falling back to local storage for PHC', e);
+        if (error) {
+          console.error('[masterDataService.getPhcs] Supabase query error:', error);
+          if (!isDemoMode()) {
+            const cached = getLocal<PhcMaster>(KEYS.PHC, []);
+            if (cached.length > 0) return cached;
+            throw new Error(`PHC माहिती लोड करता आली नाही: ${error.message}`);
+          }
+        }
+      } catch (e: any) {
+        console.error('[masterDataService.getPhcs] Exception:', e);
+        if (!isDemoMode()) {
+          const cached = getLocal<PhcMaster>(KEYS.PHC, []);
+          if (cached.length > 0) return cached;
+          throw e;
+        }
       }
     }
     return getLocal<PhcMaster>(KEYS.PHC, DEFAULT_PHCS);
@@ -206,17 +220,25 @@ export const masterDataService = {
 
   async createPhc(payload: Omit<PhcMaster, 'id' | 'created_at'>): Promise<PhcMaster> {
     if (isSupabaseConfigured() && supabase) {
-      try {
-        const { data, error } = await supabase
-          .from('phc_master')
-          .insert([payload])
-          .select()
-          .single();
-        if (!error && data) return data;
-        if (error) throw new Error(error.message);
-      } catch (e: any) {
-        console.warn('Supabase createPhc failed, saving locally', e);
+      const { data, error } = await supabase
+        .from('phc_master')
+        .insert([payload])
+        .select()
+        .single();
+      if (error) {
+        console.error('[masterDataService.createPhc] Supabase error:', error);
+        if (!isDemoMode()) {
+          throw new Error(`PHC नोंद जतन करता आली नाही: ${error.message}`);
+        }
+      } else if (data) {
+        const list = getLocal<PhcMaster>(KEYS.PHC, DEFAULT_PHCS);
+        list.push(data);
+        setLocal(KEYS.PHC, list);
+        return data;
       }
+    }
+    if (!isDemoMode()) {
+      throw new Error('Supabase कॉन्फिगर केलेले नाही. कृपया डेटाबेस जोडणी तपासा.');
     }
     const list = getLocal<PhcMaster>(KEYS.PHC, DEFAULT_PHCS);
     const newPhc: PhcMaster = {
@@ -230,18 +252,29 @@ export const masterDataService = {
   },
 
   async updatePhc(id: string, payload: Partial<PhcMaster>): Promise<PhcMaster> {
+    assertValidUUID(id, 'PHC ID');
     if (isSupabaseConfigured() && supabase) {
-      try {
-        const { data, error } = await supabase
-          .from('phc_master')
-          .update(payload)
-          .eq('id', id)
-          .select()
-          .single();
-        if (!error && data) return data;
-      } catch (e) {
-        console.warn('Supabase updatePhc fallback', e);
+      const { data, error } = await supabase
+        .from('phc_master')
+        .update(payload)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) {
+        console.error('[masterDataService.updatePhc] Supabase error:', error);
+        if (!isDemoMode()) {
+          throw new Error(`PHC माहिती अद्ययावत करता आली नाही: ${error.message}`);
+        }
+      } else if (data) {
+        const list = getLocal<PhcMaster>(KEYS.PHC, DEFAULT_PHCS);
+        const idx = list.findIndex((item) => item.id === id);
+        if (idx >= 0) list[idx] = data;
+        setLocal(KEYS.PHC, list);
+        return data;
       }
+    }
+    if (!isDemoMode()) {
+      throw new Error('Supabase कॉन्फिगर केलेले नाही.');
     }
     const list = getLocal<PhcMaster>(KEYS.PHC, DEFAULT_PHCS);
     const idx = list.findIndex((item) => item.id === id);
@@ -250,15 +283,18 @@ export const masterDataService = {
       setLocal(KEYS.PHC, list);
       return list[idx];
     }
-    throw new Error('PHC not found');
+    throw new Error('PHC सापडला नाही');
   },
 
   async deletePhc(id: string): Promise<void> {
+    assertValidUUID(id, 'PHC ID');
     if (isSupabaseConfigured() && supabase) {
-      try {
-        await supabase.from('phc_master').delete().eq('id', id);
-      } catch (e) {
-        console.warn('Supabase deletePhc fallback', e);
+      const { error } = await supabase.from('phc_master').delete().eq('id', id);
+      if (error) {
+        console.error('[masterDataService.deletePhc] Supabase error:', error);
+        if (!isDemoMode()) {
+          throw new Error(`PHC हटवता आला नाही: ${error.message}`);
+        }
       }
     }
     const list = getLocal<PhcMaster>(KEYS.PHC, DEFAULT_PHCS).filter((i) => i.id !== id);
@@ -283,10 +319,25 @@ export const masterDataService = {
         if (!error && data) {
           subcentres = data;
           setLocal(KEYS.SUBCENTRE, data);
+        } else if (error) {
+          console.error('[masterDataService.getSubcentres] Supabase error:', error);
+          if (!isDemoMode()) {
+            const cached = getLocal<SubcentreMaster>(KEYS.SUBCENTRE, []);
+            if (cached.length > 0) subcentres = cached;
+            else throw new Error(`उपकेंद्र माहिती लोड करता आली नाही: ${error.message}`);
+          } else {
+            subcentres = getLocal<SubcentreMaster>(KEYS.SUBCENTRE, DEFAULT_SUBCENTRES);
+          }
         }
-      } catch (e) {
-        console.warn('Falling back to local storage for Subcentres', e);
-        subcentres = getLocal<SubcentreMaster>(KEYS.SUBCENTRE, DEFAULT_SUBCENTRES);
+      } catch (e: any) {
+        console.error('[masterDataService.getSubcentres] Exception:', e);
+        if (!isDemoMode()) {
+          const cached = getLocal<SubcentreMaster>(KEYS.SUBCENTRE, []);
+          if (cached.length > 0) subcentres = cached;
+          else throw e;
+        } else {
+          subcentres = getLocal<SubcentreMaster>(KEYS.SUBCENTRE, DEFAULT_SUBCENTRES);
+        }
       }
     } else {
       subcentres = getLocal<SubcentreMaster>(KEYS.SUBCENTRE, DEFAULT_SUBCENTRES);
@@ -302,17 +353,27 @@ export const masterDataService = {
   async createSubcentre(
     payload: Omit<SubcentreMaster, 'id' | 'created_at' | 'phc_name'>
   ): Promise<SubcentreMaster> {
+    assertValidUUID(payload.phc_id, 'PHC ID');
     if (isSupabaseConfigured() && supabase) {
-      try {
-        const { data, error } = await supabase
-          .from('subcentre_master')
-          .insert([payload])
-          .select()
-          .single();
-        if (!error && data) return data;
-      } catch (e) {
-        console.warn('Supabase createSubcentre fallback', e);
+      const { data, error } = await supabase
+        .from('subcentre_master')
+        .insert([payload])
+        .select()
+        .single();
+      if (error) {
+        console.error('[masterDataService.createSubcentre] Supabase error:', error);
+        if (!isDemoMode()) {
+          throw new Error(`उपकेंद्र नोंद जतन करता आली नाही: ${error.message}`);
+        }
+      } else if (data) {
+        const list = getLocal<SubcentreMaster>(KEYS.SUBCENTRE, DEFAULT_SUBCENTRES);
+        list.push(data);
+        setLocal(KEYS.SUBCENTRE, list);
+        return data;
       }
+    }
+    if (!isDemoMode()) {
+      throw new Error('Supabase कॉन्फिगर केलेले नाही.');
     }
     const list = getLocal<SubcentreMaster>(KEYS.SUBCENTRE, DEFAULT_SUBCENTRES);
     const newSc: SubcentreMaster = {
@@ -326,22 +387,34 @@ export const masterDataService = {
   },
 
   async updateSubcentre(id: string, payload: Partial<SubcentreMaster>): Promise<SubcentreMaster> {
+    assertValidUUID(id, 'उपकेंद्र ID');
+    if (payload.phc_id) assertValidUUID(payload.phc_id, 'PHC ID');
     if (isSupabaseConfigured() && supabase) {
-      try {
-        const { data, error } = await supabase
-          .from('subcentre_master')
-          .update({
-            phc_id: payload.phc_id,
-            subcentre_name: payload.subcentre_name,
-            subcentre_code: payload.subcentre_code,
-          })
-          .eq('id', id)
-          .select()
-          .single();
-        if (!error && data) return data;
-      } catch (e) {
-        console.warn('Supabase updateSubcentre fallback', e);
+      const { data, error } = await supabase
+        .from('subcentre_master')
+        .update({
+          phc_id: payload.phc_id,
+          subcentre_name: payload.subcentre_name,
+          subcentre_code: payload.subcentre_code,
+        })
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) {
+        console.error('[masterDataService.updateSubcentre] Supabase error:', error);
+        if (!isDemoMode()) {
+          throw new Error(`उपकेंद्र माहिती अद्ययावत करता आली नाही: ${error.message}`);
+        }
+      } else if (data) {
+        const list = getLocal<SubcentreMaster>(KEYS.SUBCENTRE, DEFAULT_SUBCENTRES);
+        const idx = list.findIndex((i) => i.id === id);
+        if (idx >= 0) list[idx] = { ...list[idx], ...data };
+        setLocal(KEYS.SUBCENTRE, list);
+        return data;
       }
+    }
+    if (!isDemoMode()) {
+      throw new Error('Supabase कॉन्फिगर केलेले नाही.');
     }
     const list = getLocal<SubcentreMaster>(KEYS.SUBCENTRE, DEFAULT_SUBCENTRES);
     const idx = list.findIndex((i) => i.id === id);
@@ -354,11 +427,14 @@ export const masterDataService = {
   },
 
   async deleteSubcentre(id: string): Promise<void> {
+    assertValidUUID(id, 'उपकेंद्र ID');
     if (isSupabaseConfigured() && supabase) {
-      try {
-        await supabase.from('subcentre_master').delete().eq('id', id);
-      } catch (e) {
-        console.warn('Supabase deleteSubcentre fallback', e);
+      const { error } = await supabase.from('subcentre_master').delete().eq('id', id);
+      if (error) {
+        console.error('[masterDataService.deleteSubcentre] Supabase error:', error);
+        if (!isDemoMode()) {
+          throw new Error(`उपकेंद्र हटवता आले नाही: ${error.message}`);
+        }
       }
     }
     const list = getLocal<SubcentreMaster>(KEYS.SUBCENTRE, DEFAULT_SUBCENTRES).filter(
@@ -385,10 +461,25 @@ export const masterDataService = {
         if (!error && data) {
           villages = data;
           setLocal(KEYS.VILLAGE, data);
+        } else if (error) {
+          console.error('[masterDataService.getVillages] Supabase error:', error);
+          if (!isDemoMode()) {
+            const cached = getLocal<VillageMaster>(KEYS.VILLAGE, []);
+            if (cached.length > 0) villages = cached;
+            else throw new Error(`गाव माहिती लोड करता आली नाही: ${error.message}`);
+          } else {
+            villages = getLocal<VillageMaster>(KEYS.VILLAGE, DEFAULT_VILLAGES);
+          }
         }
-      } catch (e) {
-        console.warn('Falling back to local storage for Villages', e);
-        villages = getLocal<VillageMaster>(KEYS.VILLAGE, DEFAULT_VILLAGES);
+      } catch (e: any) {
+        console.error('[masterDataService.getVillages] Exception:', e);
+        if (!isDemoMode()) {
+          const cached = getLocal<VillageMaster>(KEYS.VILLAGE, []);
+          if (cached.length > 0) villages = cached;
+          else throw e;
+        } else {
+          villages = getLocal<VillageMaster>(KEYS.VILLAGE, DEFAULT_VILLAGES);
+        }
       }
     } else {
       villages = getLocal<VillageMaster>(KEYS.VILLAGE, DEFAULT_VILLAGES);
@@ -407,17 +498,27 @@ export const masterDataService = {
   async createVillage(
     payload: Omit<VillageMaster, 'id' | 'created_at' | 'subcentre_name' | 'phc_name'>
   ): Promise<VillageMaster> {
+    assertValidUUID(payload.subcentre_id, 'उपकेंद्र ID');
     if (isSupabaseConfigured() && supabase) {
-      try {
-        const { data, error } = await supabase
-          .from('village_master')
-          .insert([payload])
-          .select()
-          .single();
-        if (!error && data) return data;
-      } catch (e) {
-        console.warn('Supabase createVillage fallback', e);
+      const { data, error } = await supabase
+        .from('village_master')
+        .insert([payload])
+        .select()
+        .single();
+      if (error) {
+        console.error('[masterDataService.createVillage] Supabase error:', error);
+        if (!isDemoMode()) {
+          throw new Error(`गाव नोंद जतन करता आली नाही: ${error.message}`);
+        }
+      } else if (data) {
+        const list = getLocal<VillageMaster>(KEYS.VILLAGE, DEFAULT_VILLAGES);
+        list.push(data);
+        setLocal(KEYS.VILLAGE, list);
+        return data;
       }
+    }
+    if (!isDemoMode()) {
+      throw new Error('Supabase कॉन्फिगर केलेले नाही.');
     }
     const list = getLocal<VillageMaster>(KEYS.VILLAGE, DEFAULT_VILLAGES);
     const newVillage: VillageMaster = {
@@ -431,23 +532,35 @@ export const masterDataService = {
   },
 
   async updateVillage(id: string, payload: Partial<VillageMaster>): Promise<VillageMaster> {
+    assertValidUUID(id, 'गाव ID');
+    if (payload.subcentre_id) assertValidUUID(payload.subcentre_id, 'उपकेंद्र ID');
     if (isSupabaseConfigured() && supabase) {
-      try {
-        const { data, error } = await supabase
-          .from('village_master')
-          .update({
-            subcentre_id: payload.subcentre_id,
-            village_name: payload.village_name,
-            population: payload.population,
-            total_houses: payload.total_houses,
-          })
-          .eq('id', id)
-          .select()
-          .single();
-        if (!error && data) return data;
-      } catch (e) {
-        console.warn('Supabase updateVillage fallback', e);
+      const { data, error } = await supabase
+        .from('village_master')
+        .update({
+          subcentre_id: payload.subcentre_id,
+          village_name: payload.village_name,
+          population: payload.population,
+          total_houses: payload.total_houses,
+        })
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) {
+        console.error('[masterDataService.updateVillage] Supabase error:', error);
+        if (!isDemoMode()) {
+          throw new Error(`गाव माहिती अद्ययावत करता आली नाही: ${error.message}`);
+        }
+      } else if (data) {
+        const list = getLocal<VillageMaster>(KEYS.VILLAGE, DEFAULT_VILLAGES);
+        const idx = list.findIndex((i) => i.id === id);
+        if (idx >= 0) list[idx] = { ...list[idx], ...data };
+        setLocal(KEYS.VILLAGE, list);
+        return data;
       }
+    }
+    if (!isDemoMode()) {
+      throw new Error('Supabase कॉन्फिगर केलेले नाही.');
     }
     const list = getLocal<VillageMaster>(KEYS.VILLAGE, DEFAULT_VILLAGES);
     const idx = list.findIndex((i) => i.id === id);
@@ -460,11 +573,14 @@ export const masterDataService = {
   },
 
   async deleteVillage(id: string): Promise<void> {
+    assertValidUUID(id, 'गाव ID');
     if (isSupabaseConfigured() && supabase) {
-      try {
-        await supabase.from('village_master').delete().eq('id', id);
-      } catch (e) {
-        console.warn('Supabase deleteVillage fallback', e);
+      const { error } = await supabase.from('village_master').delete().eq('id', id);
+      if (error) {
+        console.error('[masterDataService.deleteVillage] Supabase error:', error);
+        if (!isDemoMode()) {
+          throw new Error(`गाव हटवता आले नाही: ${error.message}`);
+        }
       }
     }
     const list = getLocal<VillageMaster>(KEYS.VILLAGE, DEFAULT_VILLAGES).filter((i) => i.id !== id);
@@ -489,10 +605,25 @@ export const masterDataService = {
         if (!error && data) {
           employees = data;
           setLocal(KEYS.EMPLOYEE, data);
+        } else if (error) {
+          console.error('[masterDataService.getEmployees] Supabase error:', error);
+          if (!isDemoMode()) {
+            const cached = getLocal<EmployeeMaster>(KEYS.EMPLOYEE, []);
+            if (cached.length > 0) employees = cached;
+            else throw new Error(`कर्मचारी माहिती लोड करता आली नाही: ${error.message}`);
+          } else {
+            employees = getLocal<EmployeeMaster>(KEYS.EMPLOYEE, DEFAULT_EMPLOYEES);
+          }
         }
-      } catch (e) {
-        console.warn('Falling back to local storage for Employees', e);
-        employees = getLocal<EmployeeMaster>(KEYS.EMPLOYEE, DEFAULT_EMPLOYEES);
+      } catch (e: any) {
+        console.error('[masterDataService.getEmployees] Exception:', e);
+        if (!isDemoMode()) {
+          const cached = getLocal<EmployeeMaster>(KEYS.EMPLOYEE, []);
+          if (cached.length > 0) employees = cached;
+          else throw e;
+        } else {
+          employees = getLocal<EmployeeMaster>(KEYS.EMPLOYEE, DEFAULT_EMPLOYEES);
+        }
       }
     } else {
       employees = getLocal<EmployeeMaster>(KEYS.EMPLOYEE, DEFAULT_EMPLOYEES);
@@ -511,6 +642,7 @@ export const masterDataService = {
   async createEmployee(
     payload: Omit<EmployeeMaster, 'id' | 'created_at' | 'subcentre_name' | 'phc_name'>
   ): Promise<EmployeeMaster> {
+    assertValidUUID(payload.subcentre_id, 'उपकेंद्र ID');
     // Validate unique malaria_smear_code
     const existing = await this.getEmployees();
     const duplicate = existing.find(
@@ -521,17 +653,25 @@ export const masterDataService = {
     }
 
     if (isSupabaseConfigured() && supabase) {
-      try {
-        const { data, error } = await supabase
-          .from('employee_master')
-          .insert([payload])
-          .select()
-          .single();
-        if (!error && data) return data;
-        if (error) throw new Error(error.message);
-      } catch (e: any) {
-        console.warn('Supabase createEmployee fallback', e);
+      const { data, error } = await supabase
+        .from('employee_master')
+        .insert([payload])
+        .select()
+        .single();
+      if (error) {
+        console.error('[masterDataService.createEmployee] Supabase error:', error);
+        if (!isDemoMode()) {
+          throw new Error(`कर्मचारी नोंद जतन करता आली नाही: ${error.message}`);
+        }
+      } else if (data) {
+        const list = getLocal<EmployeeMaster>(KEYS.EMPLOYEE, DEFAULT_EMPLOYEES);
+        list.push(data);
+        setLocal(KEYS.EMPLOYEE, list);
+        return data;
       }
+    }
+    if (!isDemoMode()) {
+      throw new Error('Supabase कॉन्फिगर केलेले नाही.');
     }
 
     const list = getLocal<EmployeeMaster>(KEYS.EMPLOYEE, DEFAULT_EMPLOYEES);
@@ -546,6 +686,8 @@ export const masterDataService = {
   },
 
   async updateEmployee(id: string, payload: Partial<EmployeeMaster>): Promise<EmployeeMaster> {
+    assertValidUUID(id, 'कर्मचारी ID');
+    if (payload.subcentre_id) assertValidUUID(payload.subcentre_id, 'उपकेंद्र ID');
     if (payload.malaria_smear_code) {
       const existing = await this.getEmployees();
       const duplicate = existing.find(
@@ -559,25 +701,35 @@ export const masterDataService = {
     }
 
     if (isSupabaseConfigured() && supabase) {
-      try {
-        const { data, error } = await supabase
-          .from('employee_master')
-          .update({
-            subcentre_id: payload.subcentre_id,
-            employee_name: payload.employee_name,
-            designation: payload.designation,
-            mobile_number: payload.mobile_number,
-            email: payload.email,
-            malaria_smear_code: payload.malaria_smear_code,
-            is_active: payload.is_active,
-          })
-          .eq('id', id)
-          .select()
-          .single();
-        if (!error && data) return data;
-      } catch (e) {
-        console.warn('Supabase updateEmployee fallback', e);
+      const { data, error } = await supabase
+        .from('employee_master')
+        .update({
+          subcentre_id: payload.subcentre_id,
+          employee_name: payload.employee_name,
+          designation: payload.designation,
+          mobile_number: payload.mobile_number,
+          email: payload.email,
+          malaria_smear_code: payload.malaria_smear_code,
+          is_active: payload.is_active,
+        })
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) {
+        console.error('[masterDataService.updateEmployee] Supabase error:', error);
+        if (!isDemoMode()) {
+          throw new Error(`कर्मचारी माहिती अद्ययावत करता आली नाही: ${error.message}`);
+        }
+      } else if (data) {
+        const list = getLocal<EmployeeMaster>(KEYS.EMPLOYEE, DEFAULT_EMPLOYEES);
+        const idx = list.findIndex((i) => i.id === id);
+        if (idx >= 0) list[idx] = { ...list[idx], ...data };
+        setLocal(KEYS.EMPLOYEE, list);
+        return data;
       }
+    }
+    if (!isDemoMode()) {
+      throw new Error('Supabase कॉन्फिगर केलेले नाही.');
     }
 
     const list = getLocal<EmployeeMaster>(KEYS.EMPLOYEE, DEFAULT_EMPLOYEES);
@@ -591,11 +743,14 @@ export const masterDataService = {
   },
 
   async deleteEmployee(id: string): Promise<void> {
+    assertValidUUID(id, 'कर्मचारी ID');
     if (isSupabaseConfigured() && supabase) {
-      try {
-        await supabase.from('employee_master').delete().eq('id', id);
-      } catch (e) {
-        console.warn('Supabase deleteEmployee fallback', e);
+      const { error } = await supabase.from('employee_master').delete().eq('id', id);
+      if (error) {
+        console.error('[masterDataService.deleteEmployee] Supabase error:', error);
+        if (!isDemoMode()) {
+          throw new Error(`कर्मचारी हटवता आला नाही: ${error.message}`);
+        }
       }
     }
     const list = getLocal<EmployeeMaster>(KEYS.EMPLOYEE, DEFAULT_EMPLOYEES).filter(

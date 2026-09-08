@@ -4,18 +4,19 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { auditService } from './auditService';
 import { masterDataService } from './masterDataService';
 import { isDemoMode } from '../lib/env';
+import { assertValidUUID, isValidUUID } from '../utils/uuid';
 
 const STORAGE_KEY = 'arogya_user_profiles_master';
 
 const DEFAULT_USER_PROFILES: UserProfileEntity[] = [
   {
-    id: 'u0111111-1111-4111-8111-111111111111',
-    auth_user_id: 'auth-phc-001',
+    id: 'c1000000-0000-4000-8000-000000000001',
+    auth_user_id: '550e8400-e29b-41d4-a716-446655440101',
     role: AppUserRole.PHC_CONTROLLER,
     email: 'phbhada@gmail.com',
     mobile: '9822012345',
     display_name: 'डॉ. अमोल एस. पाटील',
-    phc_id: 'e0111111-1111-4111-8111-111111111111',
+    phc_id: '9dc0d6cf-d4fe-4554-a5ec-7d4f63a5d8da',
     subcentre_id: null,
     employee_id: null,
     is_active: true,
@@ -24,44 +25,44 @@ const DEFAULT_USER_PROFILES: UserProfileEntity[] = [
     updated_at: new Date().toISOString(),
   },
   {
-    id: 'u0222222-2222-4222-8222-222222222222',
-    auth_user_id: 'auth-sc-002',
+    id: 'c2000000-0000-4000-8000-000000000002',
+    auth_user_id: '550e8400-e29b-41d4-a716-446655440102',
     role: AppUserRole.SUBCENTRE_EMPLOYEE,
     email: 'anm.vadgaon1@arogya.gov.in',
     mobile: '9765098765',
     display_name: 'सौ. सुनिता एम. कांबळे',
-    phc_id: 'e0111111-1111-4111-8111-111111111111',
-    subcentre_id: 's0111111-1111-4111-8111-111111111111',
-    employee_id: 'emp11111-1111-4111-8111-111111111111',
+    phc_id: '9dc0d6cf-d4fe-4554-a5ec-7d4f63a5d8da',
+    subcentre_id: '4e6bf085-07e6-4c93-b366-5fb61fd1c618',
+    employee_id: '01258fa4-ab98-47e1-884d-28caea471416',
     is_active: true,
     last_login_at: new Date().toISOString(),
     created_at: new Date(Date.now() - 25 * 86400000).toISOString(),
     updated_at: new Date().toISOString(),
   },
   {
-    id: 'u0333333-3333-4333-8333-333333333333',
-    auth_user_id: 'auth-sc-003',
+    id: 'c3000000-0000-4000-8000-000000000003',
+    auth_user_id: '550e8400-e29b-41d4-a716-446655440103',
     role: AppUserRole.SUBCENTRE_EMPLOYEE,
     email: 'rahul.mpw@arogya.gov.in',
     mobile: '9823456789',
-    display_name: 'श्री. राहुल डी. पाटील',
-    phc_id: 'e0111111-1111-4111-8111-111111111111',
-    subcentre_id: 's0111111-1111-4111-8111-111111111111',
-    employee_id: 'emp22222-2222-4222-8222-222222222222',
+    display_name: 'श्री अनिल एकनाथ भराडे',
+    phc_id: '9dc0d6cf-d4fe-4554-a5ec-7d4f63a5d8da',
+    subcentre_id: '4e6bf085-07e6-4c93-b366-5fb61fd1c618',
+    employee_id: 'cbbe9908-d712-4f22-978b-061d7abcf42b',
     is_active: true,
     last_login_at: new Date(Date.now() - 2 * 86400000).toISOString(),
     created_at: new Date(Date.now() - 20 * 86400000).toISOString(),
     updated_at: new Date().toISOString(),
   },
   {
-    id: 'u0444444-4444-4444-8444-444444444444',
-    auth_user_id: 'auth-inactive-004',
+    id: 'c4000000-0000-4000-8000-000000000004',
+    auth_user_id: '550e8400-e29b-41d4-a716-446655440104',
     role: AppUserRole.SUBCENTRE_EMPLOYEE,
     email: 'inactive.user@arogya.gov.in',
     mobile: '9988776655',
     display_name: 'श्री. विजय गायकवाड (निलंबित खाते)',
-    phc_id: 'e0111111-1111-4111-8111-111111111111',
-    subcentre_id: 's0111111-1111-4111-8111-111111111111',
+    phc_id: '9dc0d6cf-d4fe-4554-a5ec-7d4f63a5d8da',
+    subcentre_id: '4e6bf085-07e6-4c93-b366-5fb61fd1c618',
     employee_id: null,
     is_active: false,
     last_login_at: new Date(Date.now() - 60 * 86400000).toISOString(),
@@ -300,15 +301,23 @@ export const userService = {
       updated_at: now,
     };
 
-    const updatedList = [newProfile, ...profiles];
-    storage.setItem(STORAGE_KEY, JSON.stringify(updatedList));
-
     if (isSupabaseConfigured() && supabase) {
-      try {
-        await supabase.from('user_profiles').insert([newProfile]);
-      } catch (err) {
-        console.warn('Supabase insert user_profiles error:', err);
+      const { data, error } = await supabase.from('user_profiles').insert([newProfile]).select().single();
+      if (error) {
+        console.error('[userService.createUserProfile] Supabase error:', error);
+        if (!isDemoMode()) {
+          throw new Error(`वापरकर्ता प्रोफाइल जतन करता आली नाही: ${error.message}`);
+        }
+      } else if (data) {
+        const updatedList = [data as UserProfileEntity, ...profiles];
+        storage.setItem(STORAGE_KEY, JSON.stringify(updatedList));
       }
+    } else {
+      if (!isDemoMode()) {
+        throw new Error('Supabase कॉन्फिगर केलेले नाही.');
+      }
+      const updatedList = [newProfile, ...profiles];
+      storage.setItem(STORAGE_KEY, JSON.stringify(updatedList));
     }
 
     // Audit Log
@@ -338,6 +347,7 @@ export const userService = {
     isActive: boolean,
     adminUser: UserProfile
   ): Promise<UserProfileEntity> {
+    assertValidUUID(profileId, 'वापरकर्ता प्रोफाइल ID');
     const profiles = await this.getUserProfiles();
     const target = profiles.find((p) => p.id === profileId);
     if (!target) {
@@ -353,18 +363,20 @@ export const userService = {
     target.is_active = isActive;
     target.updated_at = now;
 
-    storage.setItem(STORAGE_KEY, JSON.stringify(profiles));
-
     if (isSupabaseConfigured() && supabase) {
-      try {
-        await supabase
-          .from('user_profiles')
-          .update({ is_active: isActive, updated_at: now })
-          .eq('id', profileId);
-      } catch (err) {
-        console.warn('Supabase update user_profiles status error:', err);
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({ is_active: isActive, updated_at: now })
+        .eq('id', profileId);
+      if (error) {
+        console.error('[userService.toggleUserActive] Supabase error:', error);
+        if (!isDemoMode()) {
+          throw new Error(`वापरकर्ता स्थिती बदलता आली नाही: ${error.message}`);
+        }
       }
     }
+
+    storage.setItem(STORAGE_KEY, JSON.stringify(profiles));
 
     // Audit Log
     auditService.logAction({
@@ -388,6 +400,7 @@ export const userService = {
     newRole: AppUserRole,
     adminUser: UserProfile
   ): Promise<UserProfileEntity> {
+    assertValidUUID(profileId, 'वापरकर्ता प्रोफाइल ID');
     const profiles = await this.getUserProfiles();
     const target = profiles.find((p) => p.id === profileId);
     if (!target) {
@@ -398,18 +411,20 @@ export const userService = {
     target.role = newRole;
     target.updated_at = new Date().toISOString();
 
-    storage.setItem(STORAGE_KEY, JSON.stringify(profiles));
-
     if (isSupabaseConfigured() && supabase) {
-      try {
-        await supabase
-          .from('user_profiles')
-          .update({ role: newRole, updated_at: target.updated_at })
-          .eq('id', profileId);
-      } catch (err) {
-        console.warn('Supabase update user_profiles role error:', err);
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({ role: newRole, updated_at: target.updated_at })
+        .eq('id', profileId);
+      if (error) {
+        console.error('[userService.updateUserRole] Supabase error:', error);
+        if (!isDemoMode()) {
+          throw new Error(`वापरकर्ता भूमिका बदलता आली नाही: ${error.message}`);
+        }
       }
     }
+
+    storage.setItem(STORAGE_KEY, JSON.stringify(profiles));
 
     // Audit Log
     auditService.logAction({
@@ -494,8 +509,8 @@ export const userService = {
       throw new Error('पासवर्ड किमान ६ अक्षरांचा असणे आवश्यक आहे.');
     }
 
-    // --- MASTER ADMIN BYPASS ---
-    if (currentUser.id === 'master-admin-001') {
+    // --- MASTER ADMIN (valid UUID) ---
+    if (currentUser.id === 'a0000000-0000-4000-8000-000000000001' || currentUser.id === 'master-admin-001') {
       storage.setItem('master_admin_password', newPassword);
       
       currentUser.requirePasswordChange = false;

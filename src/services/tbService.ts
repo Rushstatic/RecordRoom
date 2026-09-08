@@ -2,6 +2,8 @@ import { storage } from '../lib/storage';
 import { TBPatientRecord, GenderType, TBSampleType, TBSampleGivenAt } from '../types';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { masterDataService } from './masterDataService';
+import { isDemoMode } from '../lib/env';
+import { assertValidUUID } from '../utils/uuid';
 
 const STORAGE_KEY = 'arogya_tb_samples';
 
@@ -77,6 +79,10 @@ class TBService {
   }
 
   async addSample(sample: Omit<TBPatientRecord, 'id'>): Promise<TBPatientRecord> {
+    if (sample.village_id) assertValidUUID(sample.village_id, 'गाव ID');
+    if (sample.employee_id) assertValidUUID(sample.employee_id, 'कर्मचारी ID');
+    if (sample.phc_id) assertValidUUID(sample.phc_id, 'प्रा.आ.के. ID');
+
     const newSample: TBPatientRecord = {
       ...sample,
       id: crypto.randomUUID(),
@@ -86,9 +92,15 @@ class TBService {
 
     if (isSupabaseConfigured() && supabase) {
       const { data, error } = await supabase.from('tb_suspected_patient_register').insert([newSample]).select();
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase TB insert error:', error);
+        throw new Error(`क्षयरोग नोंद जतन करता आली नाही: ${error.message}`);
+      }
       return data[0] as TBPatientRecord;
     } else {
+      if (!isDemoMode()) {
+        throw new Error('Supabase कॉन्फिगर केलेले नाही.');
+      }
       const data = getLocalData();
       data.unshift(newSample);
       setLocalData(data);
@@ -97,12 +109,23 @@ class TBService {
   }
 
   async updateSample(id: string, updates: Partial<TBPatientRecord>): Promise<TBPatientRecord> {
+    assertValidUUID(id, 'क्षयरोग नोंद ID');
+    if (updates.village_id) assertValidUUID(updates.village_id, 'गाव ID');
+    if (updates.employee_id) assertValidUUID(updates.employee_id, 'कर्मचारी ID');
+    if (updates.phc_id) assertValidUUID(updates.phc_id, 'प्रा.आ.के. ID');
+
     const enrichedUpdates = { ...updates, updated_at: new Date().toISOString() };
     if (isSupabaseConfigured() && supabase) {
       const { data, error } = await supabase.from('tb_suspected_patient_register').update(enrichedUpdates).eq('id', id).select();
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase TB update error:', error);
+        throw new Error(`क्षयरोग नोंद अद्ययावत करता आली नाही: ${error.message}`);
+      }
       return data[0] as TBPatientRecord;
     } else {
+      if (!isDemoMode()) {
+        throw new Error('Supabase कॉन्फिगर केलेले नाही.');
+      }
       const data = getLocalData();
       const index = data.findIndex(s => s.id === id);
       if (index === -1) throw new Error('Record not found');
@@ -113,10 +136,17 @@ class TBService {
   }
 
   async deleteSample(id: string): Promise<void> {
+    assertValidUUID(id, 'क्षयरोग नोंद ID');
     if (isSupabaseConfigured() && supabase) {
       const { error } = await supabase.from('tb_suspected_patient_register').delete().eq('id', id);
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase TB delete error:', error);
+        throw new Error(`क्षयरोग नोंद हटवता आली नाही: ${error.message}`);
+      }
     } else {
+      if (!isDemoMode()) {
+        throw new Error('Supabase कॉन्फिगर केलेले नाही.');
+      }
       let data = getLocalData();
       data = data.filter(s => s.id !== id);
       setLocalData(data);

@@ -2,6 +2,8 @@ import { storage } from '../lib/storage';
 import { MalariaTarget, TargetType } from '../types';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { masterDataService } from './masterDataService';
+import { isDemoMode } from '../lib/env';
+import { assertValidUUID } from '../utils/uuid';
 
 const STORAGE_KEY = 'arogya_malaria_targets';
 
@@ -255,15 +257,23 @@ export const targetService = {
           this.syncLocalAdd(formatted);
           return { data: formatted, error: null };
         }
-        console.warn('Supabase insert failed, storing locally:', error?.message);
+        console.error('Supabase insert failed:', error?.message);
+        if (!isDemoMode()) {
+          return { data: null, error: `लक्ष्य जतन करता आले नाही: ${error?.message}` };
+        }
       } catch (err: any) {
-        console.warn('Exception during target insert, using local storage:', err);
+        console.error('Exception during target insert:', err);
+        if (!isDemoMode()) {
+          return { data: null, error: err.message || 'सर्व्हर त्रुटी' };
+        }
       }
+    } else if (!isDemoMode()) {
+      return { data: null, error: 'Supabase कॉन्फिगर केलेले नाही.' };
     }
 
-    // Fallback: local storage
+    // Fallback: local storage (only demo mode)
     const newTarget: MalariaTarget = {
-      id: `tgt-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `tgt-${Date.now()}`,
       ...payload,
       phc_name: data.phc_name,
       subcentre_name: data.subcentre_name,
@@ -284,6 +294,7 @@ export const targetService = {
     id: string,
     data: Partial<MalariaTarget>
   ): Promise<{ data: MalariaTarget | null; error: string | null }> {
+    assertValidUUID(id, 'लक्ष्य ID');
     if (data.target_value !== undefined && data.target_value <= 0) {
       return { data: null, error: 'लक्ष्य संख्या शून्य किंवा त्यापेक्षा जास्त असणे आवश्यक आहे.' };
     }
@@ -344,9 +355,18 @@ export const targetService = {
           this.syncLocalUpdate(id, formatted);
           return { data: formatted, error: null };
         }
-      } catch (err) {
-        console.warn('Supabase update failed, using local update', err);
+        console.error('Supabase update failed:', error?.message);
+        if (!isDemoMode()) {
+          return { data: null, error: `लक्ष्य अद्ययावत करता आले नाही: ${error?.message}` };
+        }
+      } catch (err: any) {
+        console.error('Supabase update exception:', err);
+        if (!isDemoMode()) {
+          return { data: null, error: err.message || 'सर्व्हर त्रुटी' };
+        }
       }
+    } else if (!isDemoMode()) {
+      return { data: null, error: 'Supabase कॉन्फिगर केलेले नाही.' };
     }
 
     const localList = this.getLocalTargets();
@@ -366,6 +386,7 @@ export const targetService = {
 
   // 5. Delete target
   async deleteTarget(id: string): Promise<{ success: boolean; error: string | null }> {
+    assertValidUUID(id, 'लक्ष्य ID');
     if (isSupabaseConfigured() && supabase) {
       try {
         const { error } = await supabase.from('malaria_targets').delete().eq('id', id);
@@ -373,9 +394,18 @@ export const targetService = {
           this.syncLocalDelete(id);
           return { success: true, error: null };
         }
+        console.error('Supabase delete failed:', error?.message);
+        if (!isDemoMode()) {
+          return { success: false, error: `लक्ष्य हटवता आले नाही: ${error.message}` };
+        }
       } catch (err: any) {
-        console.warn('Supabase delete failed, using local delete', err);
+        console.error('Supabase delete exception:', err);
+        if (!isDemoMode()) {
+          return { success: false, error: err.message || 'सर्व्हर त्रुटी' };
+        }
       }
+    } else if (!isDemoMode()) {
+      return { success: false, error: 'Supabase कॉन्फिगर केलेले नाही.' };
     }
 
     this.syncLocalDelete(id);

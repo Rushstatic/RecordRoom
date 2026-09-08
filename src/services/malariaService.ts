@@ -2,6 +2,8 @@ import { storage } from '../lib/storage';
 import { MalariaBloodSample, GenderType } from '../types';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { masterDataService } from './masterDataService';
+import { isDemoMode } from '../lib/env';
+import { assertValidUUID } from '../utils/uuid';
 
 const STORAGE_KEY = 'arogya_malaria_samples';
 
@@ -46,13 +48,17 @@ export const formatSampleNumber = (num: number): string => {
 };
 
 /**
- * Safe client-side UUID generator
+ * Safe client-side UUID generator (RFC 4122 v4)
  */
 const generateId = (): string => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID();
   }
-  return 'samp-' + Math.random().toString(36).substring(2, 11) + '-' + Date.now().toString(36);
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
 };
 
 export const malariaService = {
@@ -496,9 +502,13 @@ export const malariaService = {
     if (!sampleData.employee_id) {
       throw new Error('कर्मचारी माहिती (Employee) आवश्यक आहे.');
     }
+    assertValidUUID(sampleData.employee_id, 'कर्मचारी ID');
+
     if (!sampleData.village_id) {
       throw new Error('गाव निवडणे अनिवार्य आहे.');
     }
+    assertValidUUID(sampleData.village_id, 'गाव ID');
+
     if (!sampleData.patient_name || !sampleData.patient_name.trim()) {
       throw new Error('ताप रुग्णाचे पूर्ण नाव आवश्यक आहे.');
     }
@@ -591,14 +601,24 @@ export const malariaService = {
 
             if (!retryRes.error && retryRes.data) {
               recordToInsert.sample_number = nextNum;
+            } else if (!isDemoMode()) {
+              throw new Error(`रक्त नमुना जतन करता आला नाही: ${retryRes.error?.message || error.message}`);
             }
           } else {
-            console.warn('Supabase insert sample error:', error.message);
+            console.error('Supabase insert sample error:', error.message);
+            if (!isDemoMode()) {
+              throw new Error(`रक्त नमुना जतन करता आला नाही: ${error.message}`);
+            }
           }
         }
-      } catch (err) {
-        console.warn('Supabase saveSample failed, continuing local store:', err);
+      } catch (err: any) {
+        console.error('Supabase saveSample exception:', err);
+        if (!isDemoMode()) {
+          throw new Error(err.message || 'रक्त नमुना जतन करता आला नाही.');
+        }
       }
+    } else if (!isDemoMode()) {
+      throw new Error('Supabase कॉन्फिगर केलेले नाही.');
     }
 
     // 2. Save in LocalStorage cache
@@ -627,6 +647,10 @@ export const malariaService = {
    * Update an existing blood sample
    */
   async updateSample(id: string, updates: Partial<MalariaBloodSample>): Promise<void> {
+    assertValidUUID(id, 'रक्त नमुना ID');
+    if (updates.village_id) assertValidUUID(updates.village_id, 'गाव ID');
+    if (updates.employee_id) assertValidUUID(updates.employee_id, 'कर्मचारी ID');
+
     const nowIso = new Date().toISOString();
 
     // 1. Supabase
@@ -634,7 +658,7 @@ export const malariaService = {
       try {
         const payload: any = { updated_at: nowIso };
         if (updates.patient_name) payload.patient_name = updates.patient_name.trim();
-        if (updates.house_number !== undefined) payload.house_number = updates.house_number.trim();
+        if (updates.house_number !== undefined) payload.house_number = updates.house_number ? updates.house_number.trim() : null;
         if (updates.age !== undefined) payload.age = Number(updates.age);
         if (updates.gender) payload.gender = updates.gender;
         if (updates.village_id) payload.village_id = updates.village_id;
@@ -644,10 +668,20 @@ export const malariaService = {
         }
 
         const { error } = await supabase.from('malaria_blood_samples').update(payload).eq('id', id);
-        if (error) console.warn('Supabase update sample error:', error.message);
-      } catch (err) {
-        console.warn('Supabase updateSample failed:', err);
+        if (error) {
+          console.error('Supabase update sample error:', error.message);
+          if (!isDemoMode()) {
+            throw new Error(`रक्त नमुना अद्ययावत करता आला नाही: ${error.message}`);
+          }
+        }
+      } catch (err: any) {
+        console.error('Supabase updateSample exception:', err);
+        if (!isDemoMode()) {
+          throw new Error(err.message || 'रक्त नमुना अद्ययावत करता आला नाही.');
+        }
       }
+    } else if (!isDemoMode()) {
+      throw new Error('Supabase कॉन्फिगर केलेले नाही.');
     }
 
     // 2. LocalStorage
@@ -673,6 +707,7 @@ export const malariaService = {
     if (!sampleIds || sampleIds.length === 0) {
       throw new Error('कृपया किमान एक रक्त नमुना निवडा.');
     }
+    sampleIds.forEach(id => assertValidUUID(id, 'रक्त नमुना ID'));
 
     const nowIso = new Date().toISOString();
 
@@ -689,12 +724,14 @@ export const malariaService = {
 
         if (error) {
           console.error('Supabase update sent_date error:', error);
-          throw new Error('नमुने पाठविल्याची तारीख जतन करता आली नाही. कृपया पुन्हा प्रयत्न करा.');
+          throw new Error(`नमुने पाठविल्याची तारीख जतन करता आली नाही: ${error.message}`);
         }
       } catch (err: any) {
         console.error('Supabase markSamplesAsSent failed:', err);
-        throw new Error(err.message || 'नमुने पाठविल्याची तारीख जतन करता आली नाही. कृपया पुन्हा प्रयत्न करा.');
+        throw new Error(err.message || 'नमुने पाठविल्याची तारीख जतन करता आली नाही.');
       }
+    } else if (!isDemoMode()) {
+      throw new Error('Supabase कॉन्फिगर केलेले नाही.');
     }
 
     // 2. LocalStorage Update
@@ -715,7 +752,7 @@ export const malariaService = {
       return true;
     } catch (err) {
       console.error('LocalStorage markSamplesAsSent failed:', err);
-      throw new Error('नमुने पाठविल्याची तारीख जतन करता आली नाही. कृपया पुन्हा प्रयत्न करा.');
+      throw new Error('नमुने पाठविल्याची तारीख जतन करता आली नाही.');
     }
   },
 
@@ -723,15 +760,34 @@ export const malariaService = {
    * Delete blood sample
    */
   async deleteSample(id: string): Promise<boolean> {
+    assertValidUUID(id, 'रक्त नमुना ID');
     // 1. Supabase
     if (isSupabaseConfigured() && supabase) {
       try {
         const { error } = await supabase.from('malaria_blood_samples').delete().eq('id', id);
-        if (error) console.warn('Supabase delete sample error:', error.message);
-      } catch (err) {
-        console.warn('Supabase deleteSample failed:', err);
+        if (error) {
+          console.error('Supabase delete sample error:', error.message);
+          if (!isDemoMode()) {
+            throw new Error(`रक्त नमुना हटवता आला नाही: ${error.message}`);
+          }
+        }
+      } catch (err: any) {
+        console.error('Supabase deleteSample exception:', err);
+        if (!isDemoMode()) {
+          throw new Error(err.message || 'रक्त नमुना हटवता आला नाही.');
+        }
       }
+    } else if (!isDemoMode()) {
+      throw new Error('Supabase कॉन्फिगर केलेले नाही.');
     }
+
+    // 2. LocalStorage
+    const raw = storage.getItem(STORAGE_KEY);
+    let list: MalariaBloodSample[] = raw ? JSON.parse(raw) : DEFAULT_SAMPLES;
+    list = list.filter((s) => s.id !== id);
+    storage.setItem(STORAGE_KEY, JSON.stringify(list));
+    return true;
+  },
 
     // 2. LocalStorage
     const raw = storage.getItem(STORAGE_KEY);

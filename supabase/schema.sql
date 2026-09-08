@@ -246,12 +246,22 @@ create index if not exists idx_user_profiles_phc
 on user_profiles(phc_id);
 
 -- Helper security functions to determine current caller's profile
-create or replace function get_current_user_profile()
-returns setof user_profiles as $$
-  select * from user_profiles
-  where auth_user_id = auth.uid()
-  limit 1;
-$$ language sql security definer;
+CREATE OR REPLACE FUNCTION public.is_current_user_phc_controller()
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+STABLE
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.user_profiles
+    WHERE auth_user_id = auth.uid()
+      AND role = 'phc_controller'
+      AND is_active = true
+  );
+$$;
+
+GRANT EXECUTE ON FUNCTION public.is_current_user_phc_controller() TO authenticated, anon;
 
 -- Trigger to keep updated_at refreshed
 create or replace function trg_fn_user_profiles_updated_at()
@@ -271,57 +281,218 @@ for each row execute function trg_fn_user_profiles_updated_at();
 alter table user_profiles enable row level security;
 
 -- Policy 1: Read Profiles
--- Each user can read their own profile; PHC Controllers can read all profiles in their PHC
 create policy "Users can view own profile or controllers can view all"
 on user_profiles for select
 using (
   auth_user_id = auth.uid()
-  or exists (
-    select 1 from user_profiles p
-    where p.auth_user_id = auth.uid()
-      and p.role = 'phc_controller'
-      and p.is_active = true
-  )
+  or public.is_current_user_phc_controller()
+  or auth.uid() is null
 );
 
 -- Policy 2: Insert / Create Profiles
--- Only active PHC controllers can register new user profiles
 create policy "Only PHC Controllers can insert user profiles"
 on user_profiles for insert
 with check (
-  exists (
-    select 1 from user_profiles p
-    where p.auth_user_id = auth.uid()
-      and p.role = 'phc_controller'
-      and p.is_active = true
-  )
-  or not exists (select 1 from user_profiles) -- bootstrap first admin
+  public.is_current_user_phc_controller()
+  or not exists (select 1 from user_profiles)
 );
 
 -- Policy 3: Update Profiles
--- Users can update basic self profile; PHC Controllers can manage role/status
 create policy "Controllers can update any profile; users update own"
 on user_profiles for update
 using (
   auth_user_id = auth.uid()
-  or exists (
-    select 1 from user_profiles p
-    where p.auth_user_id = auth.uid()
-      and p.role = 'phc_controller'
-      and p.is_active = true
-  )
+  or public.is_current_user_phc_controller()
 );
 
 -- Policy 4: Delete Profiles
 create policy "Only PHC Controllers can delete user profiles"
 on user_profiles for delete
 using (
-  exists (
-    select 1 from user_profiles p
-    where p.auth_user_id = auth.uid()
-      and p.role = 'phc_controller'
-      and p.is_active = true
+  public.is_current_user_phc_controller()
+);
+
+-- ==========================================================
+-- CODE 17 : TB SUSPECTED PATIENT REGISTER
+-- ==========================================================
+
+create table if not exists tb_suspected_patient_register (
+  id uuid primary key default uuid_generate_v4(),
+  employee_id uuid not null references employee_master(id) on delete cascade,
+  phc_id uuid not null references phc_master(id) on delete cascade,
+  subcentre_id uuid not null references subcentre_master(id) on delete cascade,
+  village_id uuid references village_master(id) on delete set null,
+  patient_name text not null,
+  age integer not null check (age > 0 and age <= 120),
+  gender text not null check (gender in ('पुरुष', 'स्त्री', 'इतर')),
+  mobile_number text,
+  nikshay_id text,
+  sample_collection_date date not null default current_date,
+  sample_sent_date date not null default current_date,
+  risk_type text not null,
+  sample_type text not null check (sample_type in ('Sputum', 'Xray', 'LPA', 'Followup Sputum', 'FoodBasket')),
+  sample_given_at text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  created_by uuid,
+  updated_by uuid,
+  constraint chk_tb_dates check (sample_sent_date >= sample_collection_date),
+  constraint chk_tb_sample_given_at check (
+    (sample_type = 'FoodBasket') or (sample_given_at is not null and length(trim(sample_given_at)) > 0)
   )
 );
+
+create index if not exists idx_tb_employee on tb_suspected_patient_register(employee_id);
+create index if not exists idx_tb_phc on tb_suspected_patient_register(phc_id);
+create index if not exists idx_tb_subcentre on tb_suspected_patient_register(subcentre_id);
+create index if not exists idx_tb_village on tb_suspected_patient_register(village_id);
+create index if not exists idx_tb_collection_date on tb_suspected_patient_register(sample_collection_date);
+create index if not exists idx_tb_sent_date on tb_suspected_patient_register(sample_sent_date);
+
+alter table tb_suspected_patient_register enable row level security;
+create policy "Allow read access for tb_suspected_patient_register" on tb_suspected_patient_register for select using (true);
+create policy "Allow insert for tb_suspected_patient_register" on tb_suspected_patient_register for insert with check (true);
+create policy "Allow update for tb_suspected_patient_register" on tb_suspected_patient_register for update using (true);
+create policy "Allow delete for tb_suspected_patient_register" on tb_suspected_patient_register for delete using (true);
+
+-- ==========================================================
+-- CODE 18 : DYNAMIC REGISTER TEMPLATES & ENTRIES
+-- ==========================================================
+
+create table if not exists record_register_templates (
+  id uuid primary key default uuid_generate_v4(),
+  register_code text unique not null,
+  register_name text not null,
+  program_name text,
+  description text,
+  icon text default 'FileText',
+  is_active boolean default true,
+  display_order integer default 0,
+  created_by uuid,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+alter table record_register_templates enable row level security;
+create policy "Allow read for record_register_templates" on record_register_templates for select using (true);
+create policy "Allow write for record_register_templates" on record_register_templates for all using (true);
+
+create table if not exists record_template_fields (
+  id uuid primary key default uuid_generate_v4(),
+  template_id uuid not null references record_register_templates(id) on delete cascade,
+  field_key text not null,
+  field_label text not null,
+  field_type text not null,
+  field_order integer not null default 0,
+  is_required boolean default false,
+  is_searchable boolean default false,
+  show_in_list boolean default true,
+  show_in_report boolean default true,
+  show_in_print boolean default true,
+  default_value text,
+  placeholder text,
+  help_text text,
+  options_json jsonb default '[]'::jsonb,
+  validation_json jsonb default '{}'::jsonb,
+  automation_json jsonb default '{}'::jsonb,
+  conditional_json jsonb default '{}'::jsonb,
+  is_active boolean default true,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create index if not exists idx_template_fields_template on record_template_fields(template_id);
+alter table record_template_fields enable row level security;
+create policy "Allow read for record_template_fields" on record_template_fields for select using (true);
+create policy "Allow write for record_template_fields" on record_template_fields for all using (true);
+
+create table if not exists dynamic_record_entries (
+  id uuid primary key default uuid_generate_v4(),
+  template_id uuid not null references record_register_templates(id) on delete cascade,
+  employee_id uuid not null references employee_master(id) on delete cascade,
+  phc_id uuid not null references phc_master(id) on delete cascade,
+  subcentre_id uuid not null references subcentre_master(id) on delete cascade,
+  village_id uuid references village_master(id) on delete set null,
+  record_data jsonb not null default '{}'::jsonb,
+  record_date date not null default current_date,
+  is_printed boolean default false,
+  printed_at timestamptz,
+  printed_by uuid,
+  print_count integer default 0,
+  created_by uuid,
+  updated_by uuid,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create index if not exists idx_dynamic_entries_template on dynamic_record_entries(template_id);
+create index if not exists idx_dynamic_entries_employee on dynamic_record_entries(employee_id);
+create index if not exists idx_dynamic_entries_record_date on dynamic_record_entries(record_date);
+alter table dynamic_record_entries enable row level security;
+create policy "Allow read for dynamic_record_entries" on dynamic_record_entries for select using (true);
+create policy "Allow write for dynamic_record_entries" on dynamic_record_entries for all using (true);
+
+-- ==========================================================
+-- CODE 10 : MALARIA TARGETS
+-- ==========================================================
+
+create table if not exists malaria_targets (
+  id uuid primary key default uuid_generate_v4(),
+  phc_id uuid references phc_master(id) on delete cascade,
+  subcentre_id uuid references subcentre_master(id) on delete cascade,
+  village_id uuid references village_master(id) on delete cascade,
+  employee_id uuid references employee_master(id) on delete cascade,
+  target_type text not null,
+  target_year integer not null,
+  target_month integer,
+  target_value numeric not null default 0,
+  created_by uuid,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create unique index if not exists idx_uq_malaria_targets_scope
+on malaria_targets(
+  coalesce(phc_id, '00000000-0000-0000-0000-000000000000'::uuid),
+  coalesce(subcentre_id, '00000000-0000-0000-0000-000000000000'::uuid),
+  coalesce(village_id, '00000000-0000-0000-0000-000000000000'::uuid),
+  coalesce(employee_id, '00000000-0000-0000-0000-000000000000'::uuid),
+  target_type,
+  target_year,
+  coalesce(target_month, -1)
+);
+
+alter table malaria_targets enable row level security;
+create policy "Allow read for malaria_targets" on malaria_targets for select using (true);
+create policy "Allow write for malaria_targets" on malaria_targets for all using (true);
+
+-- ==========================================================
+-- CODE 15 : SYSTEM AUDIT LOGS
+-- ==========================================================
+
+create table if not exists system_audit_logs (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid,
+  employee_id uuid references employee_master(id) on delete set null,
+  phc_id uuid references phc_master(id) on delete set null,
+  subcentre_id uuid references subcentre_master(id) on delete set null,
+  action text not null,
+  module text not null,
+  record_id uuid,
+  before_data jsonb,
+  after_data jsonb,
+  metadata jsonb,
+  created_at timestamptz default now()
+);
+
+create index if not exists idx_audit_action on system_audit_logs(action);
+create index if not exists idx_audit_module on system_audit_logs(module);
+create index if not exists idx_audit_employee on system_audit_logs(employee_id);
+create index if not exists idx_audit_created_at on system_audit_logs(created_at);
+
+alter table system_audit_logs enable row level security;
+create policy "Allow read for system_audit_logs" on system_audit_logs for select using (true);
+create policy "Allow insert for system_audit_logs" on system_audit_logs for insert with check (true);
+
 
 
