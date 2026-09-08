@@ -58,6 +58,13 @@ export const DATA_ENTRY_SUB_ITEMS: SubNavItem[] = [
     parentTab: 'data-entry',
   },
   {
+    id: 'tb-register',
+    labelMarathi: 'क्षयरोग (TB) संशयित रुग्ण नोंद',
+    labelEnglish: 'TB Suspected Patient Register',
+    iconName: 'Activity',
+    parentTab: 'data-entry',
+  },
+  {
     id: 'malaria-register',
     labelMarathi: 'मलेरिया रक्त नमुना नोंद',
     labelEnglish: 'Malaria Blood Sample Register',
@@ -125,6 +132,13 @@ export const DATA_ENTRY_SUB_ITEMS: SubNavItem[] = [
 ];
 
 export const REPORTS_SUB_ITEMS: SubNavItem[] = [
+  {
+    id: 'tb-reports',
+    labelMarathi: 'TB अहवाल',
+    labelEnglish: 'TB Reports',
+    iconName: 'FileText',
+    parentTab: 'reports',
+  },
   {
     id: 'reports',
     labelMarathi: 'मलेरिया अहवाल (M1/M2)',

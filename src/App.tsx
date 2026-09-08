@@ -19,6 +19,8 @@ import { DataValidationPage } from './pages/DataValidationPage';
 import { BackupAuditPage } from './pages/BackupAuditPage';
 import { UserManagementPage } from './pages/UserManagementPage';
 import { UserManualPage } from './pages/UserManualPage';
+import { TBRegisterPage } from './pages/TBRegisterPage';
+import { TBReportsPage } from './pages/TBReportsPage';
 import { MyAccountModal } from './components/auth/MyAccountModal';
 
 const AppContent: React.FC = () => {
@@ -52,6 +54,10 @@ const AppContent: React.FC = () => {
         return <EmployeeMasterPage />;
       case 'malaria-register':
         return <MalariaRegisterPage onNavigate={setCurrentPage} />;
+      case 'tb-register':
+        return <TBRegisterPage onNavigate={setCurrentPage} />;
+      case 'tb-reports':
+        return <TBReportsPage onNavigate={setCurrentPage} />;
       case 'offline-drafts':
         return <OfflineDraftsPage onNavigate={setCurrentPage} />;
       case 'send-samples':

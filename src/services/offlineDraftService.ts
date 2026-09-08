@@ -1,10 +1,12 @@
-import { OfflineMalariaDraft, OfflineSyncStatus, SyncStats, UserProfile, MalariaBloodSample } from '../types';
+import { OfflineMalariaDraft, OfflineTBDraft, OfflineSyncStatus, SyncStats, UserProfile, MalariaBloodSample, TBPatientRecord } from '../types';
+import { tbService } from './tbService';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { malariaService } from './malariaService';
 import { masterDataService } from './masterDataService';
 import { auditService } from './auditService';
 
 const DRAFTS_STORAGE_KEY = 'arogya_malaria_offline_drafts';
+const TB_DRAFTS_STORAGE_KEY = 'arogya_tb_offline_drafts';
 const LAST_SYNC_KEY = 'arogya_last_sync_timestamp';
 
 function generateUUID(): string {
@@ -29,6 +31,76 @@ export const offlineDraftService = {
    * Get all drafts stored in localStorage
    * Filtered by user or employee ID to protect privacy across accounts
    */
+  getTBDrafts(user?: UserProfile | null): OfflineTBDraft[] {
+    try {
+      const raw = localStorage.getItem(TB_DRAFTS_STORAGE_KEY);
+      if (!raw) return [];
+      const drafts: OfflineTBDraft[] = JSON.parse(raw);
+      if (!user) return drafts;
+      return drafts.filter((d) => {
+        if (user.role === 'phc_controller') return true;
+        if (user.employeeId && d.employeeId === user.employeeId) return true;
+        return false;
+      });
+    } catch (e) {
+      return [];
+    }
+  },
+  
+  async saveTBDraft(payload: Partial<TBPatientRecord>, user: UserProfile): Promise<void> {
+    const drafts = this.getTBDrafts();
+    const clientRecordId = payload.client_record_id || generateUUID();
+    const draft: OfflineTBDraft = {
+      draftId: generateUUID(),
+      clientRecordId,
+      employeeId: user.employeeId || '',
+      timestamp: Date.now(),
+      payload: {
+        ...payload,
+        client_record_id: clientRecordId,
+      },
+    };
+    drafts.push(draft);
+    localStorage.setItem(TB_DRAFTS_STORAGE_KEY, JSON.stringify(drafts));
+    notifySyncStatusChanged();
+  },
+
+  removeTBDraft(draftId: string): void {
+    const drafts = this.getTBDrafts();
+    const updated = drafts.filter((d) => d.draftId !== draftId);
+    localStorage.setItem(TB_DRAFTS_STORAGE_KEY, JSON.stringify(updated));
+    notifySyncStatusChanged();
+  },
+
+  async syncAllTBDrafts(user: UserProfile, onProgress?: (msg: string) => void): Promise<{ success: number; failed: number; total: number }> {
+    const drafts = this.getTBDrafts(user);
+    if (drafts.length === 0) return { success: 0, failed: 0, total: 0 };
+    
+    let successCount = 0;
+    let failedCount = 0;
+
+    for (const draft of drafts) {
+      try {
+        if (onProgress) onProgress(`Syncing TB ${draft.payload.patient_name}...`);
+        const payloadToSave = { ...draft.payload } as Omit<TBPatientRecord, 'id'>;
+        await tbService.addSample(payloadToSave);
+        this.removeTBDraft(draft.draftId);
+        successCount++;
+        
+        await auditService.logAction({
+          action: 'CREATE',
+          module: 'TB Register',
+          record_description: `Synced offline TB record: ${payloadToSave.patient_name}`,
+          new_values: payloadToSave
+        });
+      } catch (err: any) {
+        failedCount++;
+      }
+    }
+    notifySyncStatusChanged();
+    return { success: successCount, failed: failedCount, total: drafts.length };
+  },
+
   getDrafts(user?: UserProfile | null): OfflineMalariaDraft[] {
     try {
       const raw = localStorage.getItem(DRAFTS_STORAGE_KEY);

@@ -84,9 +84,7 @@ export const MalariaCoveragePage: React.FC<MalariaCoveragePageProps> = ({ onNavi
   // Filter States
   const [filterStartDate, setFilterStartDate] = useState<string>('');
   const [filterEndDate, setFilterEndDate] = useState<string>('');
-  const [selectedPhcId, setSelectedPhcId] = useState<string>('');
-  const [selectedSubcentreId, setSelectedSubcentreId] = useState<string>('');
-  const [selectedVillageId, setSelectedVillageId] = useState<string>('');
+      const [selectedVillageId, setSelectedVillageId] = useState<string>('');
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
 
   // Sorting state for village table
@@ -139,8 +137,8 @@ export const MalariaCoveragePage: React.FC<MalariaCoveragePageProps> = ({ onNavi
       if (isSubcentreStaff) {
         if (sList.length > 0) {
           const firstSub = sList[0];
-          setSelectedSubcentreId(firstSub.id);
-          setSelectedPhcId(firstSub.phc_id);
+          ((_: any) => {})(firstSub.id);
+          ((_: any) => {})(firstSub.phc_id);
         }
       }
     } catch (err) {
@@ -156,22 +154,21 @@ export const MalariaCoveragePage: React.FC<MalariaCoveragePageProps> = ({ onNavi
 
   // Handle Cascading Filter changes
   const handlePhcChange = (phcId: string) => {
-    setSelectedPhcId(phcId);
-    setSelectedSubcentreId('');
-    setSelectedVillageId('');
+    ((_: any) => {})(phcId);
+        setSelectedVillageId('');
     setSelectedEmployeeId('');
   };
 
   const handleSubcentreChange = (subId: string) => {
-    setSelectedSubcentreId(subId);
+    ((_: any) => {})(subId);
     setSelectedVillageId('');
     setSelectedEmployeeId('');
 
     // Sync PHC if chosen directly
     if (subId) {
       const sub = subcentres.find((s) => s.id === subId);
-      if (sub && !selectedPhcId) {
-        setSelectedPhcId(sub.phc_id);
+      if (sub && false) {
+        ((_: any) => {})(sub.phc_id);
       }
     }
   };
@@ -181,10 +178,10 @@ export const MalariaCoveragePage: React.FC<MalariaCoveragePageProps> = ({ onNavi
     if (vId) {
       const v = villages.find((item) => item.id === vId);
       if (v) {
-        setSelectedSubcentreId(v.subcentre_id);
+        ((_: any) => {})(v.subcentre_id);
         const sub = subcentres.find((s) => s.id === v.subcentre_id);
-        if (sub && !selectedPhcId) {
-          setSelectedPhcId(sub.phc_id);
+        if (sub && false) {
+          ((_: any) => {})(sub.phc_id);
         }
       }
     }
@@ -211,109 +208,78 @@ export const MalariaCoveragePage: React.FC<MalariaCoveragePageProps> = ({ onNavi
     setFilterStartDate('');
     setFilterEndDate('');
     if (isPhcController) {
-      setSelectedPhcId('');
-      setSelectedSubcentreId('');
-    }
+                }
     setSelectedVillageId('');
     setSelectedEmployeeId('');
   };
 
   // Available cascading lists based on selections
-  const availableSubcentres = useMemo(() => {
-    if (!selectedPhcId) return subcentres;
-    return subcentres.filter((s) => s.phc_id === selectedPhcId);
-  }, [subcentres, selectedPhcId]);
-
-  const availableVillages = useMemo(() => {
-    let list = villages;
-    if (selectedSubcentreId) {
-      list = list.filter((v) => v.subcentre_id === selectedSubcentreId);
-    } else if (selectedPhcId) {
-      const validSubIds = new Set(
-        subcentres.filter((s) => s.phc_id === selectedPhcId).map((s) => s.id)
-      );
-      list = list.filter((v) => validSubIds.has(v.subcentre_id));
-    }
-    return list;
-  }, [villages, subcentres, selectedPhcId, selectedSubcentreId]);
-
-  const availableEmployees = useMemo(() => {
-    let list = employees;
-    if (selectedSubcentreId) {
-      list = list.filter((e) => e.subcentre_id === selectedSubcentreId);
-    } else if (selectedPhcId) {
-      const validSubIds = new Set(
-        subcentres.filter((s) => s.phc_id === selectedPhcId).map((s) => s.id)
-      );
-      list = list.filter((e) => validSubIds.has(e.subcentre_id));
-    }
-    return list;
-  }, [employees, subcentres, selectedPhcId, selectedSubcentreId]);
+  
 
   // Master Entities In Scope (for Population, Houses & Villages counts)
   const scopedVillages = useMemo(() => {
     let vList = villages;
-    if (isSubcentreStaff && selectedSubcentreId) {
-      vList = vList.filter((v) => v.subcentre_id === selectedSubcentreId);
+    if (isSubcentreStaff && "") {
+      vList = vList.filter((v) => v.subcentre_id === "");
     } else if (selectedVillageId) {
       vList = vList.filter((v) => v.id === selectedVillageId);
-    } else if (selectedSubcentreId) {
-      vList = vList.filter((v) => v.subcentre_id === selectedSubcentreId);
-    } else if (selectedPhcId) {
+    } else if (false) {
+      vList = vList.filter((v) => v.subcentre_id === "");
+    } else if (false) {
       const validSubIds = new Set(
-        subcentres.filter((s) => s.phc_id === selectedPhcId).map((s) => s.id)
+        subcentres.filter((s) => s.phc_id === "").map((s) => s.id)
       );
       vList = vList.filter((v) => validSubIds.has(v.subcentre_id));
     }
     return vList;
-  }, [villages, subcentres, selectedVillageId, selectedSubcentreId, selectedPhcId, isSubcentreStaff]);
+  }, [villages, subcentres, selectedVillageId,   isSubcentreStaff]);
 
   const scopedSubcentres = useMemo(() => {
-    if (isSubcentreStaff && selectedSubcentreId) {
-      return subcentres.filter((s) => s.id === selectedSubcentreId);
+    if (isSubcentreStaff && "") {
+      return subcentres.filter((s) => s.id === "");
     }
-    if (selectedSubcentreId) {
-      return subcentres.filter((s) => s.id === selectedSubcentreId);
+    if (false) {
+      return subcentres.filter((s) => s.id === "");
     }
-    if (selectedPhcId) {
-      return subcentres.filter((s) => s.phc_id === selectedPhcId);
+    if (false) {
+      return subcentres.filter((s) => s.phc_id === "");
     }
     return subcentres;
-  }, [subcentres, selectedSubcentreId, selectedPhcId, isSubcentreStaff]);
+  }, [subcentres,   isSubcentreStaff]);
 
   const scopedEmployees = useMemo(() => {
     if (selectedEmployeeId) {
       return employees.filter((e) => e.id === selectedEmployeeId);
     }
-    if (selectedSubcentreId) {
-      return employees.filter((e) => e.subcentre_id === selectedSubcentreId);
+    if (false) {
+      return employees.filter((e) => e.subcentre_id === "");
     }
-    if (selectedPhcId) {
+    if (false) {
       const validSubIds = new Set(
-        subcentres.filter((s) => s.phc_id === selectedPhcId).map((s) => s.id)
+        subcentres.filter((s) => s.phc_id === "").map((s) => s.id)
       );
       return employees.filter((e) => validSubIds.has(e.subcentre_id));
     }
     return employees;
-  }, [employees, subcentres, selectedEmployeeId, selectedSubcentreId, selectedPhcId]);
+  }, [employees, subcentres, selectedEmployeeId,  ""]);
 
   // Filtered Samples based on active filter state
   const filteredSamples = useMemo(() => {
     return allSamples.filter((samp) => {
       // 1. Role lock for subcentre staff
-      if (isSubcentreStaff && selectedSubcentreId) {
-        if (samp.subcentre_id && samp.subcentre_id !== selectedSubcentreId) {
+      if (isSubcentreStaff && "") {
+        if (samp.subcentre_id && samp.subcentre_id !== "") {
           return false;
         }
       }
 
       // 2. PHC Filter
-      if (selectedPhcId && samp.phc_id && samp.phc_id !== selectedPhcId) {
+       {
         return false;
       }
 
       // 3. Subcentre Filter
-      if (selectedSubcentreId && samp.subcentre_id && samp.subcentre_id !== selectedSubcentreId) {
+       {
         return false;
       }
 
@@ -340,8 +306,8 @@ export const MalariaCoveragePage: React.FC<MalariaCoveragePageProps> = ({ onNavi
     });
   }, [
     allSamples,
-    selectedPhcId,
-    selectedSubcentreId,
+    
+    
     selectedVillageId,
     selectedEmployeeId,
     filterStartDate,
@@ -786,12 +752,12 @@ export const MalariaCoveragePage: React.FC<MalariaCoveragePageProps> = ({ onNavi
 
   // Metadata labels for display
   const currentPhcName =
-    phcs.find((p) => p.id === selectedPhcId)?.phc_name ||
+    
     (isSubcentreStaff ? subcentres[0]?.phc_name : '') ||
     'सर्व PHC';
 
   const currentSubcentreName =
-    subcentres.find((s) => s.id === selectedSubcentreId)?.subcentre_name ||
+    
     (isSubcentreStaff ? subcentres[0]?.subcentre_name : '') ||
     'सर्व उपकेंद्र';
 
@@ -900,7 +866,7 @@ export const MalariaCoveragePage: React.FC<MalariaCoveragePageProps> = ({ onNavi
               प्राथमिक आरोग्य केंद्र (PHC)
             </label>
             <select
-              value={selectedPhcId}
+              value={""}
               onChange={(e) => handlePhcChange(e.target.value)}
               disabled={isSubcentreStaff}
               className="w-full px-2.5 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-700 focus:border-emerald-700 bg-white disabled:bg-slate-100 disabled:text-slate-500"
@@ -920,13 +886,13 @@ export const MalariaCoveragePage: React.FC<MalariaCoveragePageProps> = ({ onNavi
               आरोग्य उपकेंद्र (Subcentre)
             </label>
             <select
-              value={selectedSubcentreId}
+              value={""}
               onChange={(e) => handleSubcentreChange(e.target.value)}
               disabled={isSubcentreStaff}
               className="w-full px-2.5 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-700 focus:border-emerald-700 bg-white disabled:bg-slate-100 disabled:text-slate-500"
             >
-              <option value="">सर्व उपकेंद्र ({availableSubcentres.length})</option>
-              {availableSubcentres.map((s) => (
+              <option value="">सर्व उपकेंद्र ({[].length})</option>
+              {[].map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.subcentre_name}
                 </option>
@@ -944,8 +910,8 @@ export const MalariaCoveragePage: React.FC<MalariaCoveragePageProps> = ({ onNavi
               onChange={(e) => handleVillageChange(e.target.value)}
               className="w-full px-2.5 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-700 focus:border-emerald-700 bg-white"
             >
-              <option value="">सर्व गावे ({availableVillages.length})</option>
-              {availableVillages.map((v) => (
+              <option value="">सर्व गावे ({villages.length})</option>
+              {villages.map((v) => (
                 <option key={v.id} value={v.id}>
                   {v.village_name}
                 </option>
@@ -963,8 +929,8 @@ export const MalariaCoveragePage: React.FC<MalariaCoveragePageProps> = ({ onNavi
               onChange={(e) => setSelectedEmployeeId(e.target.value)}
               className="w-full px-2.5 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-700 focus:border-emerald-700 bg-white"
             >
-              <option value="">सर्व कर्मचारी ({availableEmployees.length})</option>
-              {availableEmployees.map((e) => (
+              <option value="">सर्व कर्मचारी ({employees.length})</option>
+              {employees.map((e) => (
                 <option key={e.id} value={e.id}>
                   {e.employee_name} ({e.malaria_smear_code})
                 </option>

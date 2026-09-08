@@ -34,6 +34,8 @@ import { PageId, DashboardMetrics, MalariaBloodSample } from '../types';
 import { useAuth } from '../hooks/useAuth';
 import { masterDataService } from '../services/masterDataService';
 import { malariaService } from '../services/malariaService';
+import { tbService, getTodayDateString } from '../services/tbService';
+import { Stethoscope } from 'lucide-react';
 import { targetService } from '../services/targetService';
 import { validationService } from '../services/validationService';
 import { offlineDraftService } from '../services/offlineDraftService';

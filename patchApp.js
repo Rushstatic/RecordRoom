@@ -3,19 +3,18 @@ import fs from 'fs';
 const filePath = 'src/App.tsx';
 let content = fs.readFileSync(filePath, 'utf8');
 
-// Add import
-const importTarget = `import { UserManagementPage } from './pages/UserManagementPage';`;
-const importReplace = `import { UserManagementPage } from './pages/UserManagementPage';
-import { UserManualPage } from './pages/UserManualPage';`;
+const importTarget = "import { UserManualPage } from './pages/UserManualPage';";
+const importReplace = "import { UserManualPage } from './pages/UserManualPage';\nimport { TBRegisterPage } from './pages/TBRegisterPage';\nimport { TBReportsPage } from './pages/TBReportsPage';";
 content = content.replace(importTarget, importReplace);
 
-// Add case
-const caseTarget = `      case 'user-management':
-        return <UserManagementPage onNavigate={setCurrentPage} />;`;
-const caseReplace = `      case 'user-management':
-        return <UserManagementPage onNavigate={setCurrentPage} />;
-      case 'user-manual':
-        return <UserManualPage />;`;
+const caseTarget = `      case 'malaria-register':
+        return <MalariaRegisterPage onNavigate={setCurrentPage} />;`;
+const caseReplace = `      case 'malaria-register':
+        return <MalariaRegisterPage onNavigate={setCurrentPage} />;
+      case 'tb-register':
+        return <TBRegisterPage onNavigate={setCurrentPage} />;
+      case 'tb-reports':
+        return <TBReportsPage onNavigate={setCurrentPage} />;`;
 content = content.replace(caseTarget, caseReplace);
 
 fs.writeFileSync(filePath, content, 'utf8');

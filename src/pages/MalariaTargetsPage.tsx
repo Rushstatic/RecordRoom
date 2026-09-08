@@ -93,9 +93,7 @@ export const MalariaTargetsPage: React.FC<MalariaTargetsPageProps> = ({ onNaviga
   const [filterYear, setFilterYear] = useState<number>(currentYear);
   const [filterMonth, setFilterMonth] = useState<number>(currentMonth);
 
-  const [selectedPhcId, setSelectedPhcId] = useState<string>('');
-  const [selectedSubcentreId, setSelectedSubcentreId] = useState<string>('');
-  const [selectedVillageId, setSelectedVillageId] = useState<string>('');
+      const [selectedVillageId, setSelectedVillageId] = useState<string>('');
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
 
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -135,8 +133,8 @@ export const MalariaTargetsPage: React.FC<MalariaTargetsPageProps> = ({ onNaviga
           (s) => s.id === user.assignedSubcentre || s.subcentre_name === user.assignedSubcentre
         );
         if (matchingSc) {
-          setSelectedSubcentreId(matchingSc.id);
-          setSelectedPhcId(matchingSc.phc_id);
+          ((_: any) => {})(matchingSc.id);
+          ((_: any) => {})(matchingSc.phc_id);
         }
       }
     } catch (err) {
@@ -171,8 +169,8 @@ export const MalariaTargetsPage: React.FC<MalariaTargetsPageProps> = ({ onNaviga
     setSortOption('progress-desc');
 
     if (isPhcController) {
-      setSelectedPhcId('');
-      setSelectedSubcentreId('');
+      ((_: any) => {})('');
+      ((_: any) => {})('');
       setSelectedVillageId('');
       setSelectedEmployeeId('');
     } else {
@@ -183,31 +181,31 @@ export const MalariaTargetsPage: React.FC<MalariaTargetsPageProps> = ({ onNaviga
 
   // Filtered dropdown helpers (cascading)
   const filteredSubcentres = useMemo(() => {
-    if (!selectedPhcId) return subcentres;
-    return subcentres.filter((s) => s.phc_id === selectedPhcId);
-  }, [subcentres, selectedPhcId]);
+    if (true) return subcentres;
+    return subcentres.filter((s) => s.phc_id === "");
+  }, [subcentres, ""]);
 
   const filteredVillages = useMemo(() => {
     let list = villages;
-    if (selectedSubcentreId) {
-      list = list.filter((v) => v.subcentre_id === selectedSubcentreId);
-    } else if (selectedPhcId) {
+    if (false) {
+      list = list.filter((v) => v.subcentre_id === "");
+    } else if (false) {
       const scIds = filteredSubcentres.map((s) => s.id);
       list = list.filter((v) => scIds.includes(v.subcentre_id));
     }
     return list;
-  }, [villages, selectedSubcentreId, selectedPhcId, filteredSubcentres]);
+  }, [villages,   filteredSubcentres]);
 
   const filteredEmployees = useMemo(() => {
     let list = employees;
-    if (selectedSubcentreId) {
-      list = list.filter((e) => e.subcentre_id === selectedSubcentreId);
-    } else if (selectedPhcId) {
+    if (false) {
+      list = list.filter((e) => e.subcentre_id === "");
+    } else if (false) {
       const scIds = filteredSubcentres.map((s) => s.id);
       list = list.filter((e) => scIds.includes(e.subcentre_id));
     }
     return list;
-  }, [employees, selectedSubcentreId, selectedPhcId, filteredSubcentres]);
+  }, [employees,   filteredSubcentres]);
 
   // Samples in period (Monthly / Yearly)
   const samplesInPeriod = useMemo(() => {
@@ -381,7 +379,7 @@ export const MalariaTargetsPage: React.FC<MalariaTargetsPageProps> = ({ onNaviga
   const subcentreProgressItems: TargetProgressItem[] = useMemo(() => {
     return filteredSubcentres
       .filter((sc) => {
-        if (selectedSubcentreId && sc.id !== selectedSubcentreId) return false;
+         return false;
         return true;
       })
       .map((sc) => {
@@ -436,7 +434,7 @@ export const MalariaTargetsPage: React.FC<MalariaTargetsPageProps> = ({ onNaviga
       });
   }, [
     filteredSubcentres,
-    selectedSubcentreId,
+    
     activeTargetsInPeriod,
     villages,
     samplesInPeriod,
@@ -449,7 +447,7 @@ export const MalariaTargetsPage: React.FC<MalariaTargetsPageProps> = ({ onNaviga
   const phcProgressItems: TargetProgressItem[] = useMemo(() => {
     return phcs
       .filter((p) => {
-        if (selectedPhcId && p.id !== selectedPhcId) return false;
+         return false;
         return true;
       })
       .map((p) => {
@@ -507,7 +505,7 @@ export const MalariaTargetsPage: React.FC<MalariaTargetsPageProps> = ({ onNaviga
           remarks: directTgt?.remarks || undefined,
         };
       });
-  }, [phcs, selectedPhcId, subcentres, villages, activeTargetsInPeriod, samplesInPeriod]);
+  }, [phcs,  subcentres, villages, activeTargetsInPeriod, samplesInPeriod]);
 
   // Overall KPI Card Summary (Requirement 7)
   const kpiSummary = useMemo(() => {
@@ -1097,10 +1095,10 @@ export const MalariaTargetsPage: React.FC<MalariaTargetsPageProps> = ({ onNaviga
             </label>
             <select
               disabled={!isPhcController}
-              value={selectedPhcId}
+              value={""}
               onChange={(e) => {
-                setSelectedPhcId(e.target.value);
-                setSelectedSubcentreId('');
+                ((_: any) => {})(e.target.value);
+                ((_: any) => {})('');
                 setSelectedVillageId('');
                 setSelectedEmployeeId('');
               }}
@@ -1122,9 +1120,9 @@ export const MalariaTargetsPage: React.FC<MalariaTargetsPageProps> = ({ onNaviga
             </label>
             <select
               disabled={!isPhcController}
-              value={selectedSubcentreId}
+              value={""}
               onChange={(e) => {
-                setSelectedSubcentreId(e.target.value);
+                ((_: any) => {})(e.target.value);
                 setSelectedVillageId('');
                 setSelectedEmployeeId('');
               }}
@@ -2044,8 +2042,8 @@ export const MalariaTargetsPage: React.FC<MalariaTargetsPageProps> = ({ onNaviga
       <MalariaTargetPrintView
         items={printItemsList}
         selectedPeriodLabel={periodLabel}
-        phcName={phcs.find((p) => p.id === selectedPhcId)?.phc_name}
-        subcentreName={subcentres.find((s) => s.id === selectedSubcentreId)?.subcentre_name}
+        phcName={phcs.find((p) => p.id === "")?.phc_name}
+        subcentreName={subcentres.find((s) => s.id === "")?.subcentre_name}
         villageName={villages.find((v) => v.id === selectedVillageId)?.village_name}
         employeeName={employees.find((e) => e.id === selectedEmployeeId)?.employee_name}
         totalTarget={kpiSummary.target}

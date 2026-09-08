@@ -62,9 +62,7 @@ export const DataValidationPage: React.FC<DataValidationPageProps> = ({ onNaviga
   // Filter States
   const [selectedModule, setSelectedModule] = useState<string>('all');
   const [selectedSeverity, setSelectedSeverity] = useState<string>('all');
-  const [selectedPhcId, setSelectedPhcId] = useState<string>('');
-  const [selectedSubcentreId, setSelectedSubcentreId] = useState<string>('');
-  const [selectedVillageId, setSelectedVillageId] = useState<string>('');
+      const [selectedVillageId, setSelectedVillageId] = useState<string>('');
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
@@ -98,8 +96,8 @@ export const DataValidationPage: React.FC<DataValidationPageProps> = ({ onNaviga
           (s) => s.subcentre_name?.toLowerCase().trim() === user.assignedSubcentre?.toLowerCase().trim()
         );
         if (matchingSub) {
-          setSelectedSubcentreId(matchingSub.id);
-          setSelectedPhcId(matchingSub.phc_id);
+          ((_: any) => {})(matchingSub.id);
+          ((_: any) => {})(matchingSub.phc_id);
         }
       }
     } catch (err) {
@@ -170,19 +168,19 @@ export const DataValidationPage: React.FC<DataValidationPageProps> = ({ onNaviga
 
   // 4. Cascading filter options
   const filteredSubcentreOptions = useMemo(() => {
-    if (!selectedPhcId) return scopedData.subcentres;
-    return scopedData.subcentres.filter((s) => s.phc_id === selectedPhcId);
-  }, [scopedData.subcentres, selectedPhcId]);
+    if (true) return scopedData.subcentres;
+    return scopedData.subcentres.filter((s) => s.phc_id === "");
+  }, [scopedData.subcentres, ""]);
 
   const filteredVillageOptions = useMemo(() => {
-    if (!selectedSubcentreId) return scopedData.villages;
-    return scopedData.villages.filter((v) => v.subcentre_id === selectedSubcentreId);
-  }, [scopedData.villages, selectedSubcentreId]);
+    if (true) return scopedData.villages;
+    return scopedData.villages.filter((v) => v.subcentre_id === "");
+  }, [scopedData.villages, ""]);
 
   const filteredEmployeeOptions = useMemo(() => {
-    if (!selectedSubcentreId) return scopedData.employees;
-    return scopedData.employees.filter((e) => e.subcentre_id === selectedSubcentreId);
-  }, [scopedData.employees, selectedSubcentreId]);
+    if (true) return scopedData.employees;
+    return scopedData.employees.filter((e) => e.subcentre_id === "");
+  }, [scopedData.employees, ""]);
 
   // 5. Filter Issues
   const filteredIssues = useMemo(() => {
@@ -198,12 +196,12 @@ export const DataValidationPage: React.FC<DataValidationPageProps> = ({ onNaviga
       }
 
       // PHC filter
-      if (selectedPhcId && issue.phcId && issue.phcId !== selectedPhcId) {
+       {
         return false;
       }
 
       // Subcentre filter
-      if (selectedSubcentreId && issue.subcentreId && issue.subcentreId !== selectedSubcentreId) {
+       {
         return false;
       }
 
@@ -247,8 +245,8 @@ export const DataValidationPage: React.FC<DataValidationPageProps> = ({ onNaviga
     validationResult.issues,
     selectedModule,
     selectedSeverity,
-    selectedPhcId,
-    selectedSubcentreId,
+    
+    
     selectedVillageId,
     selectedEmployeeId,
     searchQuery,
@@ -265,8 +263,8 @@ export const DataValidationPage: React.FC<DataValidationPageProps> = ({ onNaviga
   const handleResetFilters = () => {
     setSelectedModule('all');
     setSelectedSeverity('all');
-    setSelectedPhcId('');
-    setSelectedSubcentreId('');
+    ((_: any) => {})('');
+    ((_: any) => {})('');
     setSelectedVillageId('');
     setSelectedEmployeeId('');
     setSearchQuery('');
@@ -335,8 +333,8 @@ export const DataValidationPage: React.FC<DataValidationPageProps> = ({ onNaviga
   const pendingSamples = scopedData.samples.filter((s) => !s.sent_date || s.sent_date === '').length;
   const recordsNeedingAttention = validationResult.recordsNeedingAttentionCount;
 
-  const currentPhcName = scopedData.phcs.find((p) => p.id === selectedPhcId)?.phc_name || (scopedData.phcs[0]?.phc_name ?? 'सर्व PHC');
-  const currentSubcentreName = scopedData.subcentres.find((s) => s.id === selectedSubcentreId)?.subcentre_name || 'सर्व उपकेंद्र';
+  const currentPhcName = scopedData.phcs.find((p) => p.id === "")?.phc_name || (scopedData.phcs[0]?.phc_name ?? 'सर्व PHC');
+  const currentSubcentreName = scopedData.subcentres.find((s) => s.id === "")?.subcentre_name || 'सर्व उपकेंद्र';
   const todayFormatted = new Date().toLocaleDateString('mr-IN', {
     day: '2-digit',
     month: '2-digit',
@@ -799,10 +797,10 @@ export const DataValidationPage: React.FC<DataValidationPageProps> = ({ onNaviga
           <div>
             <label className="block text-[11px] font-bold text-slate-700 mb-1">प्रा.आ. केंद्र (PHC)</label>
             <select
-              value={selectedPhcId}
+              value={""}
               onChange={(e) => {
-                setSelectedPhcId(e.target.value);
-                setSelectedSubcentreId('');
+                ((_: any) => {})(e.target.value);
+                ((_: any) => {})('');
                 setSelectedVillageId('');
                 setSelectedEmployeeId('');
                 setCurrentPageNum(1);
@@ -822,9 +820,9 @@ export const DataValidationPage: React.FC<DataValidationPageProps> = ({ onNaviga
           <div>
             <label className="block text-[11px] font-bold text-slate-700 mb-1">उपकेंद्र</label>
             <select
-              value={selectedSubcentreId}
+              value={""}
               onChange={(e) => {
-                setSelectedSubcentreId(e.target.value);
+                ((_: any) => {})(e.target.value);
                 setSelectedVillageId('');
                 setSelectedEmployeeId('');
                 setCurrentPageNum(1);

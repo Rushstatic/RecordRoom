@@ -150,6 +150,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
                 {currentPage === 'dashboard' && 'डॅशबोर्ड व सांख्यिकी सारांश (Summary & KPI)'}
                 {currentPage === 'daily-work' && '📅 आजचे काम व Quick Action (Daily Field Work)'}
                 {currentPage === 'malaria-register' && 'मलेरिया रक्त नमुना नोंदवही (Blood Sample Register)'}
+                {currentPage === 'tb-register' && 'राष्ट्रीय क्षयरोग नियंत्रण कार्यक्रम — संशयित रुग्ण नमुना नोंदवही (TB Register)'}
+                {currentPage === 'tb-reports' && 'क्षयरोग (TB) अहवाल व सांख्यिकी (TB Reports)'}
                 {currentPage === 'send-samples' && 'नमुने पाठविणे व पावती प्रिंट (Send Samples to PHC)'}
                 {currentPage === 'malaria-targets' &&
                   (currentTab === 'data-entry'
