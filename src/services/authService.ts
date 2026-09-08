@@ -112,51 +112,15 @@ export const authService = {
       throw new Error('कृपया ईमेल किंवा मोबाईल नंबर प्रविष्ट करा.');
     }
 
-    // --- MASTER ADMIN AUTHENTICATION ---
-    const localMasterPass = storage.getItem('master_admin_password') || '123456';
-    if (cleanId === '9730266586' && password === localMasterPass) {
-       const isFirstLogin = localMasterPass === '123456';
-       const masterProfile: UserProfile = {
-          id: 'a0000000-0000-4000-8000-000000000001',
-          authUserId: '550e8400-e29b-41d4-a716-446655440100',
-          role: 'phc_controller',
-          name: 'Master Admin',
-          marathiName: 'मुख्य प्रशासक',
-          roleTitleMarathi: 'मुख्य प्रशासक (Master Admin)',
-          email: 'admin@arogya.gov.in',
-          phone: '9730266586',
-          assignedPhc: 'प्राथमिक आरोग्य केंद्र भादा',
-          assignedSubcentre: 'सर्व उपकेंद्रे',
-          phcId: '9dc0d6cf-d4fe-4554-a5ec-7d4f63a5d8da',
-          isActive: true,
-          requirePasswordChange: isFirstLogin,
-       };
-
-       storage.setItem(STORAGE_KEY_ROLE, masterProfile.role);
-       storage.setItem(STORAGE_KEY_PROFILE, JSON.stringify(masterProfile));
-       storage.setItem(STORAGE_KEY_AUTH, 'true');
-
-       auditService.logAction({
-         action: 'LOGIN',
-         module: 'Authentication',
-         record_id: masterProfile.id,
-         record_description: `Master Admin (${masterProfile.marathiName}) यशस्वी लॉगिन`,
-         new_values: { email: masterProfile.email, role: masterProfile.role },
-         user: masterProfile,
-       }).catch(() => {});
-
-       return masterProfile;
-    } else if (cleanId === '9730266586') {
-       if (password !== '123456') { throw new Error('लॉगिन माहिती चुकीची आहे. कृपया पुन्हा प्रयत्न करा.'); }
-    }
-
     // 1. If Supabase is configured, try Supabase Auth
     if (isSupabaseConfigured() && supabase && password) {
       try {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: cleanId,
-          password: password,
-        });
+        const isEmail = cleanId.includes('@');
+        const authPayload = isEmail 
+          ? { email: cleanId, password: password }
+          : { phone: cleanId, password: password };
+
+        const { data, error } = await supabase.auth.signInWithPassword(authPayload);
 
         if (error) {
           // Log failed login attempt without sensitive password details
