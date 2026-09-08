@@ -39,12 +39,12 @@ import {
   SubcentreChartItem,
   MonthlyChartItem,
   DailyChartItem,
-} from '../components/coverage/MalariaCoverageCharts';
+} from '../components/malariaCoverage/MalariaCoverageCharts';
 import {
   MalariaCoveragePrintView,
   PrintVillageRow,
   PrintEmployeeRow,
-} from '../components/coverage/MalariaCoveragePrintView';
+} from '../components/malariaCoverage/MalariaCoveragePrintView';
 
 interface MalariaCoveragePageProps {
   onNavigate?: (page: PageId) => void;
