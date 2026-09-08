@@ -65,7 +65,8 @@ export type PageId =
   | 'user-management'
   | 'user-manual'
   | 'tb-register'
-  | 'tb-reports';
+  | 'tb-reports'
+  | 'dynamic-report';
 
 export interface NavItem {
   id: PageId;
@@ -409,7 +410,12 @@ export type AuditAction =
   | 'EXPORT'
   | 'BACKUP'
   | 'RESTORE'
-  | 'QUICK_ACTION';
+  | 'QUICK_ACTION'
+  | 'DYNAMIC_RECORD_CREATE'
+  | 'DYNAMIC_RECORD_UPDATE'
+  | 'DYNAMIC_RECORD_DELETE'
+  | 'DYNAMIC_RECORD_EXPORT'
+  | 'DYNAMIC_RECORD_PRINT';
 
 export type AuditModule =
   | 'PHC Master'

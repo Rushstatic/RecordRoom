@@ -193,6 +193,9 @@ export function getParentTabForPage(page: PageId, currentTabPreference?: MainNav
   if (page === 'template-fields' || page === 'dynamic-register') {
     return 'data-entry';
   }
+  if (page === 'dynamic-report') {
+    return 'reports';
+  }
 
   const inDataEntry = DATA_ENTRY_SUB_ITEMS.some((item) => item.id === page);
   if (inDataEntry) return 'data-entry';

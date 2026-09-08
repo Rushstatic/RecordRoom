@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import fs from 'fs';
+
+const content = `import React, { useState, useEffect } from 'react';
 import { MalariaReportsPage } from './MalariaReportsPage';
 import { PageId, RecordRegisterTemplate } from '../types';
 import { templateService } from '../services/templateService';
@@ -58,3 +60,6 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ onNavigate }) => {
 };
 
 export default ReportsPage;
+`;
+
+fs.writeFileSync('src/pages/ReportsPage.tsx', content, 'utf8');

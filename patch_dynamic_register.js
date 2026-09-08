@@ -1,7 +1,14 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import fs from 'fs';
+
+let content = fs.readFileSync('src/pages/DynamicRegisterPage.tsx', 'utf8');
+
+// The rewrite logic:
+// We need to implement proper form rendering and validation.
+// Since the file is already mostly correct conceptually, we just enhance it.
+
+const replacement = `import React, { useState, useEffect, useMemo } from 'react';
 import { PageId, RecordRegisterTemplate, RecordTemplateField, DynamicRecordEntry } from '../types';
 import { templateService } from '../services/templateService';
-import { DynamicRecordForm } from '../components/DynamicRecordForm';
 import { ArrowLeft, Save, Plus, AlertTriangle, FileSpreadsheet, Edit, Trash2 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { auditService } from '../services/auditService';
@@ -61,24 +68,25 @@ export default function DynamicRegisterPage({
     return data;
   };
 
-    const validateForm = (dataToValidate: any) => {
+  const validateForm = () => {
     for (const f of activeFields) {
       if (f.is_required) {
+        // check conditional
         let isVisible = true;
         if (f.conditional_json && f.conditional_json.depends_on) {
-           if (dataToValidate[f.conditional_json.depends_on] !== f.conditional_json.value) {
+           if (formData[f.conditional_json.depends_on] !== f.conditional_json.value) {
               isVisible = false;
            }
         }
-        if (isVisible && (!dataToValidate[f.field_key] || dataToValidate[f.field_key].toString().trim() === '')) {
-          setError(`कृपया '${f.field_label}' भरा.`);
+        if (isVisible && (!formData[f.field_key] || formData[f.field_key].toString().trim() === '')) {
+          setError(\`कृपया '\${f.field_label}' भरा.\`);
           return false;
         }
       }
-      if (f.field_type === 'date' && dataToValidate[f.field_key]) {
-         const dateVal = new Date(dataToValidate[f.field_key]);
+      if (f.field_type === 'date' && formData[f.field_key]) {
+         const dateVal = new Date(formData[f.field_key]);
          if (f.validation_json?.allow_future === false && dateVal > new Date()) {
-            setError(`${f.field_label} भविष्यातील तारीख निवडता येणार नाही.`);
+            setError(\`\${f.field_label} भविष्यातील तारीख निवडता येणार नाही.\`);
             return false;
          }
       }
@@ -86,32 +94,34 @@ export default function DynamicRegisterPage({
     return true;
   };
 
-  const handleSaveDirect = async (dataToSave: any) => {
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!templateId) return;
     setError(null);
     setSuccess(null);
 
-    if (!validateForm(dataToSave)) return;
+    if (!validateForm()) return;
 
     try {
       const newRecord: DynamicRecordEntry = {
-        id: editingId || `REC-${Date.now()}`,
+        id: editingId || \`REC-\${Date.now()}\`,
         template_id: templateId,
         employee_id: user?.employeeId,
         phc_id: user?.phcId,
         subcentre_id: user?.subcentreId,
-        record_data: dataToSave,
+        record_data: formData,
         record_date: new Date().toISOString().split('T')[0],
         created_by: user?.id,
       };
 
       await templateService.saveDynamicRecord(newRecord);
       
-      auditService.logAction({
-        action: editingId ? 'DYNAMIC_RECORD_UPDATE' : 'DYNAMIC_RECORD_CREATE',
-        module: 'Daily Work' as any,
-        record_description: `Dynamic Record: ${template?.register_name}`,
-      });
+      // Basic audit log
+      auditService.logActivity({
+        action: editingId ? 'UPDATE' : 'CREATE',
+        module: 'Daily Work',
+        record_description: \`Dynamic Record: \${template?.register_name}\`,
+      }, user);
 
       setSuccess('नोंद यशस्वीरित्या जतन झाली.');
       setTimeout(() => {
@@ -147,11 +157,11 @@ export default function DynamicRegisterPage({
        // Currently no delete method in templateService, lets implement a quick local override or skip if backend not ready.
        // We'll just alert for now. (Or mock it).
        alert('नोंद हटवली.');
-       auditService.logAction({
-         action: 'DYNAMIC_RECORD_DELETE',
-         module: 'Daily Work' as any,
-         record_description: `Dynamic Record Deleted`,
-       });
+       auditService.logActivity({
+         action: 'DELETE',
+         module: 'Daily Work',
+         record_description: \`Dynamic Record Deleted\`,
+       }, user);
     }
   };
 
@@ -188,14 +198,111 @@ export default function DynamicRegisterPage({
             <h3 className="font-bold text-slate-800">{editingId ? 'नोंद दुरुस्ती' : 'नवीन नोंद'}</h3>
           </div>
           
-          <DynamicRecordForm 
-            fields={fields} 
-            initialData={formData} 
-            onSave={(data) => handleSaveDirect(data)}
-            onCancel={() => { setShowForm(false); setEditingId(null); setFormData({}); }}
-            error={error}
-            success={success}
-          />
+          {error && (
+            <div className="p-3 m-4 bg-rose-50 text-rose-800 text-sm font-medium rounded-lg flex items-center gap-2 border border-rose-200">
+              <AlertTriangle className="w-4 h-4" /> {error}
+            </div>
+          )}
+          {success && (
+            <div className="p-3 m-4 bg-emerald-50 text-emerald-800 text-sm font-medium rounded-lg flex items-center gap-2 border border-emerald-200">
+              <FileSpreadsheet className="w-4 h-4" /> {success}
+            </div>
+          )}
+
+          <form onSubmit={handleSave} className="p-6 space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+              {activeFields.map(f => {
+                if (f.conditional_json && f.conditional_json.depends_on) {
+                   const depField = f.conditional_json.depends_on;
+                   const depValue = f.conditional_json.value;
+                   if (formData[depField] !== depValue) return null;
+                }
+                
+                const isAuto = f.field_type === 'auto_date' || f.field_type === 'auto_number' || f.automation_json?.action === 'AUTO_DATE';
+                
+                return (
+                  <div key={f.id} className="space-y-1.5">
+                    <label className="text-sm font-semibold text-slate-700">
+                      {f.field_label} {f.is_required && !isAuto && <span className="text-rose-500">*</span>}
+                    </label>
+                    
+                    {f.field_type === 'textarea' ? (
+                      <textarea
+                        required={f.is_required && !isAuto}
+                        value={formData[f.field_key] || ''}
+                        onChange={e => setFormData({...formData, [f.field_key]: e.target.value})}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-600 text-sm"
+                        placeholder={f.placeholder || ''}
+                      />
+                    ) : f.field_type === 'dropdown' ? (
+                      <select
+                        required={f.is_required && !isAuto}
+                        value={formData[f.field_key] || ''}
+                        onChange={e => setFormData({...formData, [f.field_key]: e.target.value})}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-600 text-sm"
+                      >
+                        <option value="">निवडा...</option>
+                        {Array.isArray(f.options_json) && f.options_json.map((opt: any, idx: number) => (
+                          <option key={idx} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                    ) : f.field_type === 'radio' ? (
+                      <div className="flex gap-4">
+                        {Array.isArray(f.options_json) && f.options_json.map((opt: any, idx: number) => (
+                          <label key={idx} className="flex items-center gap-2">
+                            <input
+                              type="radio"
+                              name={f.field_key}
+                              value={opt.value}
+                              checked={formData[f.field_key] === opt.value}
+                              onChange={e => setFormData({...formData, [f.field_key]: e.target.value})}
+                              className="text-indigo-600 focus:ring-indigo-600"
+                            />
+                            <span className="text-sm text-slate-700">{opt.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    ) : isAuto ? (
+                      <input
+                        type="text"
+                        disabled
+                        value={formData[f.field_key] || '(Auto)'}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 text-slate-500 text-sm font-medium"
+                      />
+                    ) : (
+                      <input
+                        required={f.is_required}
+                        type={f.field_type === 'number' ? 'number' : f.field_type === 'date' ? 'date' : 'text'}
+                        value={formData[f.field_key] || ''}
+                        onChange={e => setFormData({...formData, [f.field_key]: e.target.value})}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-600 text-sm"
+                        placeholder={f.placeholder || ''}
+                        min={f.validation_json?.min}
+                        max={f.validation_json?.max}
+                        pattern={f.validation_json?.pattern}
+                      />
+                    )}
+                    {f.help_text && <p className="text-xs text-slate-500">{f.help_text}</p>}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="pt-6 flex flex-col sm:flex-row justify-end gap-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => { setShowForm(false); setEditingId(null); setFormData({}); }}
+                className="px-6 py-3 sm:py-2 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-colors w-full sm:w-auto"
+              >
+                रद्द करा / साफ करा
+              </button>
+              <button
+                type="submit"
+                className="px-6 py-3 sm:py-2 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 w-full sm:w-auto"
+              >
+                <Save className="w-5 h-5 sm:w-4 sm:h-4" /> जतन करा
+              </button>
+            </div>
+          </form>
         </div>
       ) : (
         <div className="space-y-6">
@@ -248,3 +355,7 @@ export default function DynamicRegisterPage({
     </div>
   );
 }
+`;
+
+content = replacement;
+fs.writeFileSync('src/pages/DynamicRegisterPage.tsx', content, 'utf8');

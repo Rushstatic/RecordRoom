@@ -1,3 +1,4 @@
+import DynamicReportPage from './pages/DynamicReportPage';
 import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { AppLayout } from './layouts/AppLayout';
@@ -66,6 +67,8 @@ const AppContent: React.FC = () => {
         return <OfflineDraftsPage onNavigate={setCurrentPage} />;
       case 'send-samples':
         return <SendSamplesPage />;
+      case 'dynamic-report':
+        return <DynamicReportPage onNavigate={setCurrentPage} templateId={selectedTemplateId || localStorage.getItem('selectedTemplateId') || ''} />;
       case 'reports':
       case 'malaria-reports':
         return <ReportsPage onNavigate={setCurrentPage} />;

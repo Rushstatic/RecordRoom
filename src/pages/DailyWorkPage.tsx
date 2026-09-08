@@ -44,6 +44,8 @@ import { useAuth } from '../hooks/useAuth';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { malariaService, formatIndianDate } from '../services/malariaService';
 import { masterDataService } from '../services/masterDataService';
+import { templateService } from '../services/templateService';
+import { RecordRegisterTemplate } from '../types';
 import { targetService } from '../services/targetService';
 import { offlineDraftService } from '../services/offlineDraftService';
 import { auditService } from '../services/auditService';
@@ -78,6 +80,7 @@ export const DailyWorkPage: React.FC<DailyWorkPageProps> = ({ onNavigate }) => {
   const [samples, setSamples] = useState<MalariaBloodSample[]>([]);
   const [drafts, setDrafts] = useState<OfflineMalariaDraft[]>([]);
   const [targets, setTargets] = useState<MalariaTarget[]>([]);
+  const [dynamicTemplates, setDynamicTemplates] = useState<RecordRegisterTemplate[]>([]);
 
   // Filtering & Selection
   const [selectedVillageFilter, setSelectedVillageFilter] = useState<string>('all');
