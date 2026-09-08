@@ -21,21 +21,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <script>
-  window.addEventListener('error', function(e) {
-    var div = document.createElement('div');
-    div.style.color = 'red';
-    div.style.padding = '20px';
-    div.style.background = 'white';
-    div.style.position = 'fixed';
-    div.style.top = '0';
-    div.style.left = '0';
-    div.style.zIndex = '9999';
-    div.innerText = 'Runtime Error: ' + e.message + ' at ' + e.filename + ':' + e.lineno;
-    document.body.appendChild(div);
-  });
-</script>
-</head>
+  </head>
   <body class="font-sans antialiased bg-slate-50 text-slate-900 selection:bg-emerald-700 selection:text-white">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
