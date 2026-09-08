@@ -33,6 +33,8 @@ import {
 import { PageId, DashboardMetrics, MalariaBloodSample } from '../types';
 import { useAuth } from '../hooks/useAuth';
 import { masterDataService } from '../services/masterDataService';
+import { templateService } from '../services/templateService';
+import { RecordRegisterTemplate } from '../types';
 import { malariaService } from '../services/malariaService';
 import { tbService, getTodayDateString } from '../services/tbService';
 import { Stethoscope } from 'lucide-react';
@@ -65,6 +67,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   const [qualityScore, setQualityScore] = useState(100);
   const [syncStats, setSyncStats] = useState({ pending: 0, synced: 0, failed: 0, total: 0 });
   const [showSqlModal, setShowSqlModal] = useState(false);
+  const [dynamicTemplates, setDynamicTemplates] = useState<RecordRegisterTemplate[]>([]);
 
   const todayStr = useMemo(() => {
     const now = new Date();

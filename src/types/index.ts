@@ -53,6 +53,9 @@ export type PageId =
   | 'malaria-register'
   | 'offline-drafts'
   | 'send-samples'
+  | 'template-builder'
+  | 'template-fields'
+  | 'dynamic-register'
   | 'reports'
   | 'malaria-reports'
   | 'malaria-coverage'
@@ -547,3 +550,64 @@ export interface SyncStats {
 
 
 
+
+// --- CODE 18: Dynamic Record Templates ---
+
+export interface RecordRegisterTemplate {
+  id: string;
+  register_code: string;
+  register_name: string;
+  program_name: string | null;
+  description: string | null;
+  icon: string | null;
+  is_active: boolean;
+  display_order: number;
+  created_by?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export type FieldType = 
+  | 'text' | 'textarea' | 'number' | 'date' | 'datetime' 
+  | 'mobile' | 'dropdown' | 'radio' | 'checkbox' 
+  | 'boolean' | 'auto_number' | 'auto_date' 
+  | 'calculated' | 'hidden';
+
+export interface RecordTemplateField {
+  id: string;
+  template_id: string;
+  field_key: string;
+  field_label: string;
+  field_type: FieldType;
+  field_order: number;
+  is_required: boolean;
+  is_searchable: boolean;
+  show_in_list: boolean;
+  show_in_report: boolean;
+  show_in_print: boolean;
+  default_value: string | null;
+  placeholder: string | null;
+  help_text: string | null;
+  options_json: any | null;
+  validation_json: any | null;
+  automation_json: any | null;
+  conditional_json: any | null;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface DynamicRecordEntry {
+  id: string;
+  template_id: string;
+  employee_id?: string;
+  phc_id?: string;
+  subcentre_id?: string;
+  village_id?: string;
+  record_data: any;
+  record_date: string;
+  created_by?: string;
+  updated_by?: string;
+  created_at?: string;
+  updated_at?: string;
+}

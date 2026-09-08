@@ -22,10 +22,14 @@ import { UserManualPage } from './pages/UserManualPage';
 import { TBRegisterPage } from './pages/TBRegisterPage';
 import { TBReportsPage } from './pages/TBReportsPage';
 import { MyAccountModal } from './components/auth/MyAccountModal';
+import TemplateBuilderPage from './pages/TemplateBuilderPage';
+import TemplateFieldsPage from './pages/TemplateFieldsPage';
+import DynamicRegisterPage from './pages/DynamicRegisterPage';
 
 const AppContent: React.FC = () => {
   const { user, isLoggedIn } = useAuth();
   const [currentPage, setCurrentPage] = useState<PageId>('dashboard');
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
 
   // If user is not logged in or navigates to login, render Login page
   if (!isLoggedIn || currentPage === 'login') {
@@ -77,6 +81,12 @@ const AppContent: React.FC = () => {
         return <UserManagementPage onNavigate={setCurrentPage} />;
       case 'user-manual':
         return <UserManualPage />;
+      case 'template-builder':
+        return <TemplateBuilderPage onNavigate={setCurrentPage} onSelectTemplate={(id: string) => setSelectedTemplateId(id)} />;
+      case 'template-fields':
+        return <TemplateFieldsPage onNavigate={setCurrentPage} templateId={selectedTemplateId || localStorage.getItem('selectedTemplateId') || ''} />;
+      case 'dynamic-register':
+        return <DynamicRegisterPage onNavigate={setCurrentPage} templateId={selectedTemplateId || localStorage.getItem('selectedTemplateId') || ''} />;
       default:
         return <DashboardPage onNavigate={setCurrentPage} />;
     }

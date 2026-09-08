@@ -122,6 +122,14 @@ export const DATA_ENTRY_SUB_ITEMS: SubNavItem[] = [
     parentTab: 'data-entry',
   },
   {
+    id: 'template-builder',
+    labelMarathi: 'रेकॉर्ड टेम्प्लेट व्यवस्थापन',
+    labelEnglish: 'Register Builder',
+    iconName: 'Settings',
+    isControllerOnly: true,
+    parentTab: 'data-entry',
+  },
+  {
     id: 'user-management',
     labelMarathi: 'वापरकर्ता व्यवस्थापन',
     labelEnglish: 'User Management & Roles',
@@ -181,6 +189,9 @@ export function getParentTabForPage(page: PageId, currentTabPreference?: MainNav
 
   if (page === 'malaria-targets') {
     return currentTabPreference === 'data-entry' ? 'data-entry' : 'reports';
+  }
+  if (page === 'template-fields' || page === 'dynamic-register') {
+    return 'data-entry';
   }
 
   const inDataEntry = DATA_ENTRY_SUB_ITEMS.some((item) => item.id === page);
