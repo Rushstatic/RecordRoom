@@ -166,6 +166,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
                 {currentPage === 'malaria-coverage' && 'मलेरिया Coverage व Performance Dashboard'}
                 {currentPage === 'data-validation' && 'आरोग्य डेटा गुणवत्ता व तपासणी (Data Quality & Validation)'}
                 {currentPage === 'backup-audit' && 'डेटा बॅकअप व सिस्टीम Activity (Backup & Audit Log)'}
+                {currentPage === 'user-manual' && 'वापरकर्ता पुस्तिका (User Manual)'}
               </span>
             </div>
 

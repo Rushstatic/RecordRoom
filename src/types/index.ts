@@ -59,7 +59,8 @@ export type PageId =
   | 'malaria-targets'
   | 'data-validation'
   | 'backup-audit'
-  | 'user-management';
+  | 'user-management'
+  | 'user-manual';
 
 export interface NavItem {
   id: PageId;

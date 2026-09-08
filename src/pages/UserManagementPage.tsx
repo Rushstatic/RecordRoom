@@ -10,7 +10,7 @@ import {
   CheckCircle2,
   XCircle,
   AlertTriangle,
-  Lock,
+  Lock, Key,
   Building2,
   MapPin,
   Clock,

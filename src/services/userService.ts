@@ -410,7 +410,7 @@ export const userService = {
     // If Supabase was connected, we couldn't bypass it like this without the admin API.
     
     auditService.logAction({
-      action: 'PASSWORD_RESET_SUCCESS',
+      action: 'PASSWORD_RESET',
       module: 'Authentication',
       record_description: `${cleanId} साठी पासवर्ड यशस्वीरित्या रीसेट केला.`,
       new_values: { identifier: cleanId },

@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   FileEdit,
   BarChart3,
+  HelpCircle,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { PageId } from '../types';
@@ -152,6 +153,18 @@ export const Header: React.FC<HeaderProps> = ({
               currentUser={user}
               onNavigatePage={onNavigatePage || (() => {})}
             />
+
+            {/* Help / User Manual Button */}
+            {user && onNavigatePage && (
+              <button
+                type="button"
+                onClick={() => onNavigatePage('user-manual')}
+                title="वापरकर्ता पुस्तिका (User Manual)"
+                className="hidden sm:flex items-center justify-center w-8 h-8 rounded-full bg-white/10 hover:bg-amber-500 hover:text-emerald-950 text-amber-200 transition-colors cursor-pointer border border-white/10"
+              >
+                <HelpCircle className="w-4 h-4" />
+              </button>
+            )}
 
             {/* User Profile Capsule (Opens My Account Modal) */}
             {user && (

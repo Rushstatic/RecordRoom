@@ -18,6 +18,7 @@ import { MalariaTargetsPage } from './pages/MalariaTargetsPage';
 import { DataValidationPage } from './pages/DataValidationPage';
 import { BackupAuditPage } from './pages/BackupAuditPage';
 import { UserManagementPage } from './pages/UserManagementPage';
+import { UserManualPage } from './pages/UserManualPage';
 import { MyAccountModal } from './components/auth/MyAccountModal';
 
 const AppContent: React.FC = () => {
@@ -68,6 +69,8 @@ const AppContent: React.FC = () => {
         return <BackupAuditPage />;
       case 'user-management':
         return <UserManagementPage onNavigate={setCurrentPage} />;
+      case 'user-manual':
+        return <UserManualPage />;
       default:
         return <DashboardPage onNavigate={setCurrentPage} />;
     }
