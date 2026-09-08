@@ -211,6 +211,11 @@ export const targetService = {
       return { data: null, error: 'मासिक लक्ष्यासाठी वैध महिना निवडणे आवश्यक आहे.' };
     }
 
+    if (data.phc_id) assertValidUUID(data.phc_id, 'प्रा.आ.के. ID');
+    if (data.subcentre_id) assertValidUUID(data.subcentre_id, 'उपकेंद्र ID');
+    if (data.village_id) assertValidUUID(data.village_id, 'गाव ID');
+    if (data.employee_id) assertValidUUID(data.employee_id, 'कर्मचारी ID');
+
     // Check duplicate
     const isDup = await this.checkDuplicate(data);
     if (isDup) {
@@ -295,6 +300,11 @@ export const targetService = {
     data: Partial<MalariaTarget>
   ): Promise<{ data: MalariaTarget | null; error: string | null }> {
     assertValidUUID(id, 'लक्ष्य ID');
+    if (data.phc_id) assertValidUUID(data.phc_id, 'प्रा.आ.के. ID');
+    if (data.subcentre_id) assertValidUUID(data.subcentre_id, 'उपकेंद्र ID');
+    if (data.village_id) assertValidUUID(data.village_id, 'गाव ID');
+    if (data.employee_id) assertValidUUID(data.employee_id, 'कर्मचारी ID');
+
     if (data.target_value !== undefined && data.target_value <= 0) {
       return { data: null, error: 'लक्ष्य संख्या शून्य किंवा त्यापेक्षा जास्त असणे आवश्यक आहे.' };
     }

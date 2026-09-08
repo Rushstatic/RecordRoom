@@ -612,6 +612,10 @@ export interface DynamicRecordEntry {
   village_id?: string;
   record_data: any;
   record_date: string;
+  is_printed?: boolean;
+  printed_at?: string;
+  printed_by?: string;
+  print_count?: number;
   created_by?: string;
   updated_by?: string;
   created_at?: string;

@@ -14,6 +14,7 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { masterDataService } from './masterDataService';
 import { malariaService } from './malariaService';
 import { targetService } from './targetService';
+import { isValidUUID } from '../utils/uuid';
 
 const AUDIT_STORAGE_KEY = 'arogya_system_audit_logs';
 const BACKUP_HISTORY_KEY = 'arogya_backup_history';
@@ -228,10 +229,27 @@ export const auditService = {
           .limit(500);
 
         if (!error && data && data.length > 0) {
+          const remoteLogs: SystemAuditLog[] = data.map((d: any) => ({
+            id: d.id,
+            user_id: d.user_id,
+            user_name: d.user_name || d.metadata?.user_name || 'सिस्टीम (System)',
+            role: d.role || d.metadata?.role || null,
+            action: d.action,
+            module: d.module,
+            record_id: d.record_id || d.metadata?.raw_record_id || null,
+            record_description: d.record_description || d.metadata?.record_description || null,
+            old_values: d.old_values || d.before_data || null,
+            new_values: d.new_values || d.after_data || null,
+            ip_address: d.ip_address || null,
+            user_agent: d.user_agent || d.metadata?.user_agent || null,
+            created_at: d.created_at,
+            subcentre_id: d.subcentre_id,
+            phc_id: d.phc_id,
+          }));
           // Merge remote with local deduplicating by ID
-          const existingIds = new Set(data.map((d: any) => d.id));
+          const existingIds = new Set(remoteLogs.map((d) => d.id));
           const localOnly = allLogs.filter((l) => !existingIds.has(l.id));
-          allLogs = [...data, ...localOnly];
+          allLogs = [...remoteLogs, ...localOnly];
         }
       } catch (err) {
         console.warn('Supabase audit logs fetch fallback to local:', err);
@@ -330,7 +348,33 @@ export const auditService = {
     // Try async write to Supabase if configured
     if (isSupabaseConfigured() && supabase) {
       try {
-        await supabase.from('system_audit_logs').insert([newLog]);
+        const dbPayload: any = {
+          id: isValidUUID(newLog.id) ? newLog.id : generateUUID(),
+          user_id: isValidUUID(newLog.user_id) ? newLog.user_id : null,
+          employee_id: isValidUUID(user?.employeeId) ? user.employeeId : null,
+          phc_id: isValidUUID(newLog.phc_id) ? newLog.phc_id : null,
+          subcentre_id: isValidUUID(newLog.subcentre_id) ? newLog.subcentre_id : null,
+          action: newLog.action,
+          module: newLog.module,
+          record_id: isValidUUID(newLog.record_id) ? newLog.record_id : null,
+          before_data: newLog.old_values || null,
+          after_data: newLog.new_values || null,
+          old_values: newLog.old_values || null,
+          new_values: newLog.new_values || null,
+          record_description: newLog.record_description || null,
+          user_name: newLog.user_name,
+          role: newLog.role,
+          user_agent: newLog.user_agent,
+          metadata: {
+            user_name: newLog.user_name,
+            role: newLog.role,
+            record_description: newLog.record_description,
+            user_agent: newLog.user_agent,
+            raw_record_id: newLog.record_id,
+          },
+          created_at: newLog.created_at,
+        };
+        await supabase.from('system_audit_logs').insert([dbPayload]);
       } catch (err) {
         // Non-blocking
         console.warn('Supabase audit log insert non-fatal error:', err);

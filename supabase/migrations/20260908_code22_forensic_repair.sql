@@ -219,10 +219,13 @@ CREATE TABLE IF NOT EXISTS public.malaria_targets (
   target_year integer NOT NULL,
   target_month integer,
   target_value numeric NOT NULL DEFAULT 0,
+  remarks text,
   created_by uuid,
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now()
 );
+
+ALTER TABLE public.malaria_targets ADD COLUMN IF NOT EXISTS remarks text;
 
 -- Unique index ensuring no duplicates for the same scope, type and time period
 CREATE UNIQUE INDEX IF NOT EXISTS idx_uq_malaria_targets_scope
@@ -264,6 +267,14 @@ CREATE TABLE IF NOT EXISTS public.system_audit_logs (
   metadata jsonb,
   created_at timestamptz DEFAULT now()
 );
+
+-- Compatibility columns for flexible audit payload and reporting
+ALTER TABLE public.system_audit_logs ADD COLUMN IF NOT EXISTS user_name text;
+ALTER TABLE public.system_audit_logs ADD COLUMN IF NOT EXISTS role text;
+ALTER TABLE public.system_audit_logs ADD COLUMN IF NOT EXISTS record_description text;
+ALTER TABLE public.system_audit_logs ADD COLUMN IF NOT EXISTS old_values jsonb;
+ALTER TABLE public.system_audit_logs ADD COLUMN IF NOT EXISTS new_values jsonb;
+ALTER TABLE public.system_audit_logs ADD COLUMN IF NOT EXISTS user_agent text;
 
 CREATE INDEX IF NOT EXISTS idx_audit_action ON public.system_audit_logs(action);
 CREATE INDEX IF NOT EXISTS idx_audit_module ON public.system_audit_logs(module);

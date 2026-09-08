@@ -2,6 +2,7 @@ import { storage } from '../lib/storage';
 import { RecordRegisterTemplate, RecordTemplateField, DynamicRecordEntry } from '../types';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { isDemoMode } from '../lib/env';
+import { assertValidUUID, isValidUUID } from '../utils/uuid';
 
 const TEMPLATES_KEY = 'arogya_register_templates';
 const TEMPLATE_FIELDS_KEY = 'arogya_template_fields';
@@ -9,7 +10,7 @@ const DYNAMIC_RECORDS_KEY = 'arogya_dynamic_records';
 
 const DEFAULT_TEMPLATES: RecordRegisterTemplate[] = [
   {
-    id: 'TPL-MALARIA-01',
+    id: 'b1000000-0000-4000-8000-000000000001',
     register_code: 'MALARIA',
     register_name: 'मलेरिया रक्त नमुना नोंद',
     program_name: 'राष्ट्रीय हिवताप नियंत्रण कार्यक्रम',
@@ -20,7 +21,7 @@ const DEFAULT_TEMPLATES: RecordRegisterTemplate[] = [
     created_at: new Date().toISOString()
   },
   {
-    id: 'TPL-TB-01',
+    id: 'b2000000-0000-4000-8000-000000000002',
     register_code: 'TB',
     register_name: 'क्षयरोग संशयित रुग्ण नोंद',
     program_name: 'राष्ट्रीय क्षयरोग निर्मूलन कार्यक्रम',
@@ -69,8 +70,28 @@ class TemplateService {
   }
 
   async saveTemplate(template: RecordRegisterTemplate): Promise<void> {
+    const validId = isValidUUID(template.id) ? template.id : crypto.randomUUID();
+    const cleanTemplate: RecordRegisterTemplate = {
+      ...template,
+      id: validId,
+      updated_at: new Date().toISOString()
+    };
+
     if (isSupabaseConfigured() && supabase) {
-      const { error } = await supabase.from('record_register_templates').upsert({...template, updated_at: new Date().toISOString()});
+      const dbPayload = {
+        id: cleanTemplate.id,
+        register_code: cleanTemplate.register_code,
+        register_name: cleanTemplate.register_name,
+        program_name: cleanTemplate.program_name || null,
+        description: cleanTemplate.description || null,
+        icon: cleanTemplate.icon || 'FileText',
+        is_active: cleanTemplate.is_active ?? true,
+        display_order: cleanTemplate.display_order ?? 0,
+        created_by: isValidUUID(cleanTemplate.created_by) ? cleanTemplate.created_by : null,
+        updated_at: cleanTemplate.updated_at,
+      };
+
+      const { error } = await supabase.from('record_register_templates').upsert(dbPayload);
       if (error) {
         console.error('Supabase save template error:', error);
         if (!isDemoMode()) {
@@ -82,17 +103,17 @@ class TemplateService {
     }
 
     const templates = await this.getTemplates();
-    const index = templates.findIndex(t => t.id === template.id);
+    const index = templates.findIndex(t => t.id === cleanTemplate.id);
     if (index >= 0) {
-      templates[index] = { ...template, updated_at: new Date().toISOString() };
+      templates[index] = cleanTemplate;
     } else {
-      templates.push({ ...template, created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
+      templates.push({ ...cleanTemplate, created_at: new Date().toISOString() });
     }
     storage.setItem(TEMPLATES_KEY, JSON.stringify(templates));
   }
 
   async getTemplateFields(templateId: string): Promise<RecordTemplateField[]> {
-    if (isSupabaseConfigured() && supabase) {
+    if (isSupabaseConfigured() && supabase && isValidUUID(templateId)) {
       try {
         const { data, error } = await supabase.from('record_template_fields').select('*').eq('template_id', templateId).order('field_order');
         if (!error && data) return data as RecordTemplateField[];
@@ -105,8 +126,39 @@ class TemplateService {
   }
 
   async saveTemplateField(field: RecordTemplateField): Promise<void> {
+    assertValidUUID(field.template_id, 'टेम्पलेट ID');
+    const validId = isValidUUID(field.id) ? field.id : crypto.randomUUID();
+    const cleanField: RecordTemplateField = {
+      ...field,
+      id: validId,
+      updated_at: new Date().toISOString()
+    };
+
     if (isSupabaseConfigured() && supabase) {
-      const { error } = await supabase.from('record_template_fields').upsert({...field, updated_at: new Date().toISOString()});
+      const dbPayload = {
+        id: cleanField.id,
+        template_id: cleanField.template_id,
+        field_key: cleanField.field_key,
+        field_label: cleanField.field_label,
+        field_type: cleanField.field_type,
+        field_order: cleanField.field_order ?? 0,
+        is_required: cleanField.is_required ?? false,
+        is_searchable: cleanField.is_searchable ?? false,
+        show_in_list: cleanField.show_in_list ?? true,
+        show_in_report: cleanField.show_in_report ?? true,
+        show_in_print: cleanField.show_in_print ?? true,
+        default_value: cleanField.default_value || null,
+        placeholder: cleanField.placeholder || null,
+        help_text: cleanField.help_text || null,
+        options_json: cleanField.options_json || [],
+        validation_json: cleanField.validation_json || {},
+        automation_json: cleanField.automation_json || {},
+        conditional_json: cleanField.conditional_json || {},
+        is_active: cleanField.is_active ?? true,
+        updated_at: cleanField.updated_at,
+      };
+
+      const { error } = await supabase.from('record_template_fields').upsert(dbPayload);
       if (error) {
         console.error('Supabase save field error:', error);
         if (!isDemoMode()) {
@@ -119,16 +171,17 @@ class TemplateService {
 
     let raw = storage.getItem(TEMPLATE_FIELDS_KEY);
     let fields = raw ? JSON.parse(raw) as RecordTemplateField[] : [];
-    const index = fields.findIndex(f => f.id === field.id);
+    const index = fields.findIndex(f => f.id === cleanField.id);
     if (index >= 0) {
-      fields[index] = { ...field, updated_at: new Date().toISOString() };
+      fields[index] = cleanField;
     } else {
-      fields.push({ ...field, created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
+      fields.push({ ...cleanField, created_at: new Date().toISOString() });
     }
     storage.setItem(TEMPLATE_FIELDS_KEY, JSON.stringify(fields));
   }
   
   async deleteTemplateField(fieldId: string): Promise<void> {
+    assertValidUUID(fieldId, 'फील्ड ID');
     if (isSupabaseConfigured() && supabase) {
       const { error } = await supabase.from('record_template_fields').delete().eq('id', fieldId);
       if (error) {
@@ -148,7 +201,7 @@ class TemplateService {
   }
 
   async getDynamicRecords(templateId: string): Promise<DynamicRecordEntry[]> {
-    if (isSupabaseConfigured() && supabase) {
+    if (isSupabaseConfigured() && supabase && isValidUUID(templateId)) {
       try {
         const { data, error } = await supabase.from('dynamic_record_entries').select('*').eq('template_id', templateId).order('created_at', { ascending: false });
         if (!error && data) return data as DynamicRecordEntry[];
@@ -163,8 +216,39 @@ class TemplateService {
   }
 
   async saveDynamicRecord(record: DynamicRecordEntry): Promise<void> {
+    assertValidUUID(record.template_id, 'टेम्पलेट ID');
+    assertValidUUID(record.employee_id, 'कर्मचारी ID');
+    assertValidUUID(record.phc_id, 'प्रा.आ.के. ID');
+    assertValidUUID(record.subcentre_id, 'उपकेंद्र ID');
+    if (record.village_id) assertValidUUID(record.village_id, 'गाव ID');
+
+    const validId = isValidUUID(record.id) ? record.id : crypto.randomUUID();
+    const cleanRecord: DynamicRecordEntry = {
+      ...record,
+      id: validId,
+      updated_at: new Date().toISOString()
+    };
+
     if (isSupabaseConfigured() && supabase) {
-      const { error } = await supabase.from('dynamic_record_entries').upsert({...record, updated_at: new Date().toISOString()});
+      const dbPayload = {
+        id: cleanRecord.id,
+        template_id: cleanRecord.template_id,
+        employee_id: cleanRecord.employee_id,
+        phc_id: cleanRecord.phc_id,
+        subcentre_id: cleanRecord.subcentre_id,
+        village_id: cleanRecord.village_id || null,
+        record_data: cleanRecord.record_data || {},
+        record_date: cleanRecord.record_date || new Date().toISOString().split('T')[0],
+        is_printed: cleanRecord.is_printed ?? false,
+        printed_at: cleanRecord.printed_at || null,
+        printed_by: isValidUUID(cleanRecord.printed_by) ? cleanRecord.printed_by : null,
+        print_count: cleanRecord.print_count ?? 0,
+        created_by: isValidUUID(cleanRecord.created_by) ? cleanRecord.created_by : null,
+        updated_by: isValidUUID(cleanRecord.updated_by) ? cleanRecord.updated_by : null,
+        updated_at: cleanRecord.updated_at,
+      };
+
+      const { error } = await supabase.from('dynamic_record_entries').upsert(dbPayload);
       if (error) {
         console.error('Supabase save record error:', error);
         if (!isDemoMode()) {
@@ -177,11 +261,11 @@ class TemplateService {
 
     let raw = storage.getItem(DYNAMIC_RECORDS_KEY);
     let records = raw ? JSON.parse(raw) as DynamicRecordEntry[] : [];
-    const index = records.findIndex(r => r.id === record.id);
+    const index = records.findIndex(r => r.id === cleanRecord.id);
     if (index >= 0) {
-      records[index] = { ...record, updated_at: new Date().toISOString() };
+      records[index] = cleanRecord;
     } else {
-      records.push({ ...record, created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
+      records.push({ ...cleanRecord, created_at: new Date().toISOString() });
     }
     storage.setItem(DYNAMIC_RECORDS_KEY, JSON.stringify(records));
   }

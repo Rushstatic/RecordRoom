@@ -510,7 +510,7 @@ export const userService = {
     }
 
     // --- MASTER ADMIN (valid UUID) ---
-    if (currentUser.id === 'a0000000-0000-4000-8000-000000000001' || currentUser.id === 'master-admin-001') {
+    if (currentUser.id === 'a0000000-0000-4000-8000-000000000001') {
       storage.setItem('master_admin_password', newPassword);
       
       currentUser.requirePasswordChange = false;

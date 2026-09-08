@@ -446,10 +446,13 @@ create table if not exists malaria_targets (
   target_year integer not null,
   target_month integer,
   target_value numeric not null default 0,
+  remarks text,
   created_by uuid,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
+
+alter table malaria_targets add column if not exists remarks text;
 
 create unique index if not exists idx_uq_malaria_targets_scope
 on malaria_targets(
@@ -484,6 +487,13 @@ create table if not exists system_audit_logs (
   metadata jsonb,
   created_at timestamptz default now()
 );
+
+alter table system_audit_logs add column if not exists user_name text;
+alter table system_audit_logs add column if not exists role text;
+alter table system_audit_logs add column if not exists record_description text;
+alter table system_audit_logs add column if not exists old_values jsonb;
+alter table system_audit_logs add column if not exists new_values jsonb;
+alter table system_audit_logs add column if not exists user_agent text;
 
 create index if not exists idx_audit_action on system_audit_logs(action);
 create index if not exists idx_audit_module on system_audit_logs(module);

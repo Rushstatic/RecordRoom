@@ -789,14 +789,6 @@ export const malariaService = {
     return true;
   },
 
-    // 2. LocalStorage
-    const raw = storage.getItem(STORAGE_KEY);
-    let list: MalariaBloodSample[] = raw ? JSON.parse(raw) : DEFAULT_SAMPLES;
-    list = list.filter((s) => s.id !== id);
-    storage.setItem(STORAGE_KEY, JSON.stringify(list));
-    return true;
-  },
-
   /**
    * Calculate live reporting statistics based on scope filter and date range
    */

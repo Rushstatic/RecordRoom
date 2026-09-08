@@ -36,6 +36,7 @@ import { auditService } from '../services/auditService';
 import { ActivityDetailsModal } from '../components/audit/ActivityDetailsModal';
 import { ActivityPrintView } from '../components/audit/ActivityPrintView';
 import { RestoreModal } from '../components/audit/RestoreModal';
+import { DatabaseDiagnosticTab } from '../components/audit/DatabaseDiagnosticTab';
 
 const ACTION_BADGES: Record<AuditAction, { bg: string; text: string; border: string }> = {
   LOGIN: { bg: 'bg-blue-50', text: 'text-blue-800', border: 'border-blue-200' },
@@ -107,7 +108,7 @@ export const BackupAuditPage: React.FC = () => {
   const { user, role } = useAuth();
 
   // Active Main Tab
-  const [activeTab, setActiveTab] = useState<'activity' | 'backup' | 'restore'>('activity');
+  const [activeTab, setActiveTab] = useState<'activity' | 'backup' | 'restore' | 'diagnostic'>('activity');
 
   // Audit Logs State
   const [logs, setLogs] = useState<SystemAuditLog[]>([]);
@@ -461,6 +462,20 @@ export const BackupAuditPage: React.FC = () => {
               <Lock className="w-3 h-3" /> PHC Only
             </span>
           )}
+        </button>
+
+        <button
+          id="tab-diagnostic"
+          type="button"
+          onClick={() => setActiveTab('diagnostic')}
+          className={`flex items-center gap-2 py-3 px-4 font-bold text-xs sm:text-sm border-b-2 whitespace-nowrap transition-colors cursor-pointer ${
+            activeTab === 'diagnostic'
+              ? 'border-purple-700 text-purple-900 bg-purple-50/50 rounded-t-xl'
+              : 'border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300'
+          }`}
+        >
+          <ShieldCheck className="w-4 h-4" />
+          <span>४. डेटाबेस फॉरेन्सिक पडताळणी (Database Diagnostic)</span>
         </button>
       </div>
 
@@ -1127,6 +1142,13 @@ export const BackupAuditPage: React.FC = () => {
             </div>
           )}
         </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 4: DATABASE FORENSIC DIAGNOSTIC */}
+      {/* ========================================================================= */}
+      {activeTab === 'diagnostic' && (
+        <DatabaseDiagnosticTab />
       )}
 
       {/* Activity Details Modal */}

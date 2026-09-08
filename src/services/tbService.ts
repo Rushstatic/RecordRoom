@@ -29,6 +29,14 @@ export const getTodayDateString = (): string => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
+function normalizeTBGender(gender: any): 'पुरुष' | 'स्त्री' | 'इतर' {
+  if (!gender) return 'पुरुष';
+  const g = String(gender).trim().toLowerCase();
+  if (g === 'female' || g === 'f' || g === 'स्त्री' || g === 'महिला') return 'स्त्री';
+  if (g === 'other' || g === 'o' || g === 'इतर') return 'इतर';
+  return 'पुरुष';
+}
+
 function getLocalData(): TBPatientRecord[] {
   const data = storage.getItem(STORAGE_KEY);
   return data ? JSON.parse(data) : DEFAULT_SAMPLES;
@@ -44,12 +52,24 @@ class TBService {
     
     if (isSupabaseConfigured() && supabase) {
       let query = supabase.from('tb_suspected_patient_register').select('*');
-      if (filters?.employee_id) query = query.eq('employee_id', filters.employee_id);
-      if (filters?.phc_id) query = query.eq('phc_id', filters.phc_id);
+      if (filters?.employee_id) {
+        assertValidUUID(filters.employee_id, 'कर्मचारी ID');
+        query = query.eq('employee_id', filters.employee_id);
+      }
+      if (filters?.phc_id) {
+        assertValidUUID(filters.phc_id, 'प्रा.आ.के. ID');
+        query = query.eq('phc_id', filters.phc_id);
+      }
       
       const { data, error } = await query.order('created_at', { ascending: false });
-      if (error) console.error('Supabase error fetching TB samples:', error);
-      else samples = data as TBPatientRecord[];
+      if (error) {
+        console.error('Supabase error fetching TB samples:', error);
+        if (!isDemoMode()) {
+          throw new Error(`क्षयरोग यादी आणता आली नाही: ${error.message}`);
+        }
+      } else {
+        samples = data as TBPatientRecord[];
+      }
     } else {
       samples = getLocalData();
       if (filters?.employee_id) {
@@ -79,19 +99,48 @@ class TBService {
   }
 
   async addSample(sample: Omit<TBPatientRecord, 'id'>): Promise<TBPatientRecord> {
+    assertValidUUID(sample.employee_id, 'कर्मचारी ID');
+    assertValidUUID(sample.phc_id, 'प्रा.आ.के. ID');
+    assertValidUUID(sample.subcentre_id, 'उपकेंद्र ID');
     if (sample.village_id) assertValidUUID(sample.village_id, 'गाव ID');
-    if (sample.employee_id) assertValidUUID(sample.employee_id, 'कर्मचारी ID');
-    if (sample.phc_id) assertValidUUID(sample.phc_id, 'प्रा.आ.के. ID');
+
+    if (sample.sample_sent_date < sample.sample_collection_date) {
+      throw new Error('नमुना पाठवल्याची तारीख नमुना घेतल्याच्या तारखेपेक्षा आधीची असू शकत नाही.');
+    }
+    if (sample.sample_type !== 'FoodBasket' && (!sample.sample_given_at || !sample.sample_given_at.trim())) {
+      throw new Error('नमुना कोठे दिला (Sample Given At) निवडणे आवश्यक आहे.');
+    }
 
     const newSample: TBPatientRecord = {
       ...sample,
+      gender: normalizeTBGender(sample.gender),
       id: crypto.randomUUID(),
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
 
     if (isSupabaseConfigured() && supabase) {
-      const { data, error } = await supabase.from('tb_suspected_patient_register').insert([newSample]).select();
+      const dbPayload = {
+        id: newSample.id,
+        employee_id: newSample.employee_id,
+        phc_id: newSample.phc_id,
+        subcentre_id: newSample.subcentre_id,
+        village_id: newSample.village_id || null,
+        patient_name: newSample.patient_name.trim(),
+        age: Number(newSample.age),
+        gender: newSample.gender,
+        mobile_number: newSample.mobile_number ? newSample.mobile_number.trim() : null,
+        nikshay_id: newSample.nikshay_id ? newSample.nikshay_id.trim() : null,
+        sample_collection_date: newSample.sample_collection_date,
+        sample_sent_date: newSample.sample_sent_date,
+        risk_type: newSample.risk_type,
+        sample_type: newSample.sample_type,
+        sample_given_at: newSample.sample_given_at ? newSample.sample_given_at.trim() : null,
+        created_at: newSample.created_at,
+        updated_at: newSample.updated_at,
+      };
+
+      const { data, error } = await supabase.from('tb_suspected_patient_register').insert([dbPayload]).select();
       if (error) {
         console.error('Supabase TB insert error:', error);
         throw new Error(`क्षयरोग नोंद जतन करता आली नाही: ${error.message}`);
@@ -113,10 +162,34 @@ class TBService {
     if (updates.village_id) assertValidUUID(updates.village_id, 'गाव ID');
     if (updates.employee_id) assertValidUUID(updates.employee_id, 'कर्मचारी ID');
     if (updates.phc_id) assertValidUUID(updates.phc_id, 'प्रा.आ.के. ID');
+    if (updates.subcentre_id) assertValidUUID(updates.subcentre_id, 'उपकेंद्र ID');
 
-    const enrichedUpdates = { ...updates, updated_at: new Date().toISOString() };
+    const enrichedUpdates = { 
+      ...updates, 
+      ...(updates.gender ? { gender: normalizeTBGender(updates.gender) } : {}),
+      updated_at: new Date().toISOString() 
+    };
+
     if (isSupabaseConfigured() && supabase) {
-      const { data, error } = await supabase.from('tb_suspected_patient_register').update(enrichedUpdates).eq('id', id).select();
+      const dbUpdates: any = {
+        updated_at: enrichedUpdates.updated_at,
+      };
+      if (updates.employee_id) dbUpdates.employee_id = updates.employee_id;
+      if (updates.phc_id) dbUpdates.phc_id = updates.phc_id;
+      if (updates.subcentre_id) dbUpdates.subcentre_id = updates.subcentre_id;
+      if (updates.village_id !== undefined) dbUpdates.village_id = updates.village_id || null;
+      if (updates.patient_name !== undefined) dbUpdates.patient_name = updates.patient_name.trim();
+      if (updates.age !== undefined) dbUpdates.age = Number(updates.age);
+      if (updates.gender !== undefined) dbUpdates.gender = normalizeTBGender(updates.gender);
+      if (updates.mobile_number !== undefined) dbUpdates.mobile_number = updates.mobile_number ? updates.mobile_number.trim() : null;
+      if (updates.nikshay_id !== undefined) dbUpdates.nikshay_id = updates.nikshay_id ? updates.nikshay_id.trim() : null;
+      if (updates.sample_collection_date !== undefined) dbUpdates.sample_collection_date = updates.sample_collection_date;
+      if (updates.sample_sent_date !== undefined) dbUpdates.sample_sent_date = updates.sample_sent_date;
+      if (updates.risk_type !== undefined) dbUpdates.risk_type = updates.risk_type;
+      if (updates.sample_type !== undefined) dbUpdates.sample_type = updates.sample_type;
+      if (updates.sample_given_at !== undefined) dbUpdates.sample_given_at = updates.sample_given_at ? updates.sample_given_at.trim() : null;
+
+      const { data, error } = await supabase.from('tb_suspected_patient_register').update(dbUpdates).eq('id', id).select();
       if (error) {
         console.error('Supabase TB update error:', error);
         throw new Error(`क्षयरोग नोंद अद्ययावत करता आली नाही: ${error.message}`);
