@@ -5,7 +5,8 @@ import {defineConfig} from 'vite';
 import {VitePWA} from 'vite-plugin-pwa';
 
 export default defineConfig(() => {
-  const basePath = process.env.BASE_PATH || '/';
+  // Use relative base path by default for GitHub Pages compatibility
+  const basePath = process.env.BASE_PATH || './';
   return {
     base: basePath,
     plugins: [
