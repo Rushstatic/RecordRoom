@@ -1,6 +1,7 @@
 import { storage } from '../lib/storage';
 import { RecordRegisterTemplate, RecordTemplateField, DynamicRecordEntry } from '../types';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { isDemoMode } from '../lib/env';
 
 const TEMPLATES_KEY = 'arogya_register_templates';
 const TEMPLATE_FIELDS_KEY = 'arogya_template_fields';
@@ -36,15 +37,25 @@ class TemplateService {
     if (isSupabaseConfigured() && supabase) {
       try {
         const { data, error } = await supabase.from('record_register_templates').select('*').order('display_order');
-        if (!error && data) return data as RecordRegisterTemplate[];
+        if (!error && data) {
+          storage.setItem(TEMPLATES_KEY, JSON.stringify(data));
+          return data as RecordRegisterTemplate[];
+        }
       } catch (e) { console.warn('Supabase templates error, using local'); }
     }
     let raw = storage.getItem(TEMPLATES_KEY);
     if (!raw) {
-      storage.setItem(TEMPLATES_KEY, JSON.stringify(DEFAULT_TEMPLATES));
-      return DEFAULT_TEMPLATES;
+      if (isDemoMode()) {
+        storage.setItem(TEMPLATES_KEY, JSON.stringify(DEFAULT_TEMPLATES));
+        return DEFAULT_TEMPLATES;
+      }
+      return [];
     }
-    return JSON.parse(raw);
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return isDemoMode() ? DEFAULT_TEMPLATES : [];
+    }
   }
 
   async getActiveTemplates(): Promise<RecordRegisterTemplate[]> {

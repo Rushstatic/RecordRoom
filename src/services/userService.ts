@@ -3,6 +3,7 @@ import { UserProfileEntity, UserProfile, AppUserRole, UserRole } from '../types'
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { auditService } from './auditService';
 import { masterDataService } from './masterDataService';
+import { isDemoMode } from '../lib/env';
 
 const STORAGE_KEY = 'arogya_user_profiles_master';
 
@@ -92,25 +93,28 @@ export const userService = {
           .select('*')
           .order('created_at', { ascending: false });
 
-        if (!error && data && data.length > 0) {
+        if (!error && data) {
           storage.setItem(STORAGE_KEY, JSON.stringify(data));
           return data as UserProfileEntity[];
         }
       } catch (err) {
-        console.warn('Supabase fetch user_profiles error, fallback to local:', err);
+        console.warn('Supabase fetch user_profiles error:', err);
       }
     }
 
     const saved = storage.getItem(STORAGE_KEY);
     if (!saved) {
-      storage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_USER_PROFILES));
-      return DEFAULT_USER_PROFILES;
+      if (isDemoMode()) {
+        storage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_USER_PROFILES));
+        return DEFAULT_USER_PROFILES;
+      }
+      return [];
     }
 
     try {
       return JSON.parse(saved);
     } catch {
-      return DEFAULT_USER_PROFILES;
+      return isDemoMode() ? DEFAULT_USER_PROFILES : [];
     }
   },
 
@@ -118,6 +122,21 @@ export const userService = {
    * Find profile by Supabase Auth User ID
    */
   async getProfileByAuthId(authUserId: string): Promise<UserProfileEntity | null> {
+    if (isSupabaseConfigured() && supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('auth_user_id', authUserId)
+          .maybeSingle();
+        if (!error && data) {
+          return data as UserProfileEntity;
+        }
+      } catch (err) {
+        console.warn('Error querying user_profiles by auth_user_id:', err);
+      }
+    }
+
     const profiles = await this.getUserProfiles();
     return profiles.find((p) => p.auth_user_id === authUserId) || null;
   },
@@ -127,18 +146,28 @@ export const userService = {
    */
   async getProfileByEmailOrMobile(identifier: string): Promise<UserProfileEntity | null> {
     const cleanId = identifier.trim().toLowerCase();
-    const profiles = await this.getUserProfiles();
 
-    // Special match for admin default email
-    if (cleanId === 'phbhada@gmail.com' || cleanId === 'mo.phc@arogya.gov.in' || cleanId === 'admin') {
-      return profiles.find((p) => p.role === AppUserRole.PHC_CONTROLLER) || profiles[0];
+    if (isSupabaseConfigured() && supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .or(`email.ilike.${cleanId},mobile.eq.${cleanId}`)
+          .maybeSingle();
+        if (!error && data) {
+          return data as UserProfileEntity;
+        }
+      } catch (err) {
+        console.warn('Error querying user_profiles by email/mobile:', err);
+      }
     }
 
+    const profiles = await this.getUserProfiles();
     return (
       profiles.find(
         (p) =>
           (p.email && p.email.toLowerCase() === cleanId) ||
-          (p.mobile && p.mobile === cleanId)
+          (p.mobile && p.mobile.toLowerCase() === cleanId)
       ) || null
     );
   },
@@ -165,32 +194,35 @@ export const userService = {
 
     const isController =
       entity.role === AppUserRole.PHC_CONTROLLER ||
-      entity.role === 'phc_controller';
+      entity.role === 'phc_controller' ||
+      entity.role === 'PHC_CONTROLLER';
 
     const standardRole: UserRole = isController ? 'phc_controller' : 'subcentre_employee';
+
+    const displayName = entity.display_name || employee?.employee_name || entity.email?.split('@')[0] || 'वापरकर्ता';
 
     return {
       id: entity.id,
       authUserId: entity.auth_user_id,
-      name: employee?.employee_name || entity.display_name || 'User',
-      marathiName: employee?.employee_name || entity.display_name || 'वापरकर्ता',
+      name: employee?.employee_name || displayName,
+      marathiName: displayName,
       role: standardRole,
       roleTitleMarathi: isController
         ? 'प्रा.आ.के. नियंत्रक / वैद्यकीय अधिकारी'
         : employee?.designation || 'उपकेंद्र आरोग्य कर्मचारी',
       email: entity.email || '',
       phone: entity.mobile || employee?.mobile_number || '',
-      assignedPhc: phc?.phc_name || 'प्राथमिक आरोग्य केंद्र, वडगाव',
+      assignedPhc: phc?.phc_name || '',
       assignedSubcentre:
         subcentre?.subcentre_name ||
-        (isController ? 'सर्व उपकेंद्रे' : 'आरोग्य उपकेंद्र, जातेगाव'),
+        (isController ? 'सर्व उपकेंद्रे' : ''),
       employeeId: entity.employee_id || undefined,
       phcId: entity.phc_id || undefined,
       subcentreId: entity.subcentre_id || undefined,
       smearCode: employee?.malaria_smear_code || undefined,
       isActive: entity.is_active,
-      taluka: phc?.taluka || 'शिरूर',
-      district: phc?.district || 'पुणे',
+      taluka: phc?.taluka || '',
+      district: phc?.district || '',
     };
   },
 

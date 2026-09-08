@@ -18,6 +18,7 @@ import { UserRole } from '../types';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { userService } from '../services/userService';
 import { ForgotPasswordModal } from '../components/auth/ForgotPasswordModal';
+import { isDemoMode } from '../lib/env';
 
 interface LoginPageProps {
   onLoginSuccess: () => void;
@@ -194,70 +195,72 @@ return (
             </button>
           </form>
 
-          {/* Quick Demo Access Options for Evaluation */}
-          <div className="pt-2 border-t border-slate-100">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                डेमो भूमिका त्वरित प्रवेश (Demo Roles)
-              </span>
-              <span className="text-[10px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded font-semibold border border-amber-200">
-                चाचणीसाठी
-              </span>
-            </div>
+          {/* Quick Demo Access Options for Evaluation (Demo Mode Only) */}
+          {isDemoMode() && (
+            <div className="pt-2 border-t border-slate-100">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  डेमो भूमिका त्वरित प्रवेश (Demo Roles)
+                </span>
+                <span className="text-[10px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded font-semibold border border-amber-200">
+                  चाचणीसाठी
+                </span>
+              </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickDemoLogin('subcentre_employee')}
-                disabled={isLoading}
-                className="p-2.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-emerald-50 hover:border-emerald-300 text-left transition-colors cursor-pointer group"
-              >
-                <div className="flex items-center gap-1.5 text-emerald-800 font-bold text-xs mb-0.5">
-                  <UserCheck className="w-3.5 h-3.5 text-emerald-700" />
-                  <span>उपकेंद्र कर्मचारी</span>
-                </div>
-                <div className="text-[11px] text-slate-500 group-hover:text-emerald-900 truncate">
-                  सौ. सुनिता कांबळे (ANM)
-                </div>
-              </button>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleQuickDemoLogin('subcentre_employee')}
+                  disabled={isLoading}
+                  className="p-2.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-emerald-50 hover:border-emerald-300 text-left transition-colors cursor-pointer group"
+                >
+                  <div className="flex items-center gap-1.5 text-emerald-800 font-bold text-xs mb-0.5">
+                    <UserCheck className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>उपकेंद्र कर्मचारी</span>
+                  </div>
+                  <div className="text-[11px] text-slate-500 group-hover:text-emerald-900 truncate">
+                    सौ. सुनिता कांबळे (ANM)
+                  </div>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => handleQuickDemoLogin('phc_controller')}
-                disabled={isLoading}
-                className="p-2.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-emerald-50 hover:border-emerald-300 text-left transition-colors cursor-pointer group"
-              >
-                <div className="flex items-center gap-1.5 text-emerald-800 font-bold text-xs mb-0.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
-                  <span>PHC नियंत्रक</span>
-                </div>
-                <div className="text-[11px] text-slate-500 group-hover:text-emerald-900 truncate">
-                  डॉ. अमोल पाटील (MO)
-                </div>
-              </button>
-            </div>
+                <button
+                  type="button"
+                  onClick={() => handleQuickDemoLogin('phc_controller')}
+                  disabled={isLoading}
+                  className="p-2.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-emerald-50 hover:border-emerald-300 text-left transition-colors cursor-pointer group"
+                >
+                  <div className="flex items-center gap-1.5 text-emerald-800 font-bold text-xs mb-0.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>PHC नियंत्रक</span>
+                  </div>
+                  <div className="text-[11px] text-slate-500 group-hover:text-emerald-900 truncate">
+                    डॉ. अमोल पाटील (MO)
+                  </div>
+                </button>
+              </div>
 
-            {/* Test Inactive Account Helper */}
-            <div className="mt-2 text-center">
-              <button
-                type="button"
-                onClick={async () => {
-                  setIdentifier('inactive.user@arogya.gov.in');
-                  setPassword('Test@123');
-                  setErrorMessage(null);
-                  try {
-                    await loginWithEmail('inactive.user@arogya.gov.in', 'Test@123');
-                    onLoginSuccess();
-                  } catch (err: any) {
-                    setErrorMessage(err.message || 'लॉगिन माहिती चुकीची आहे.');
-                  }
-                }}
-                className="text-[11px] text-slate-400 hover:text-slate-600 underline cursor-pointer"
-              >
-                निष्क्रिय खात्याची चाचणी घ्या (Test Inactive Account Block)
-              </button>
+              {/* Test Inactive Account Helper */}
+              <div className="mt-2 text-center">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setIdentifier('inactive.user@arogya.gov.in');
+                    setPassword('Test@123');
+                    setErrorMessage(null);
+                    try {
+                      await loginWithEmail('inactive.user@arogya.gov.in', 'Test@123');
+                      onLoginSuccess();
+                    } catch (err: any) {
+                      setErrorMessage(err.message || 'लॉगिन माहिती चुकीची आहे.');
+                    }
+                  }}
+                  className="text-[11px] text-slate-400 hover:text-slate-600 underline cursor-pointer"
+                >
+                  निष्क्रिय खात्याची चाचणी घ्या (Test Inactive Account Block)
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Security Status Info */}
           <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-[11px] text-slate-600">

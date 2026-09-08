@@ -3,12 +3,13 @@ import { UserProfile, UserRole, AppUserRole } from '../types';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { auditService } from './auditService';
 import { userService } from './userService';
+import { isDemoMode } from '../lib/env';
 
 const STORAGE_KEY_ROLE = 'arogya_current_user_role';
 const STORAGE_KEY_PROFILE = 'arogya_current_user_profile';
 const STORAGE_KEY_AUTH = 'arogya_is_logged_in';
 
-// Standard demo users for quick role switching / fallback
+// Standard demo users for quick role switching / fallback in demo mode
 export const DEMO_USERS: Record<UserRole, UserProfile> = {
   phc_controller: {
     id: 'u0111111-1111-4111-8111-111111111111',
@@ -51,12 +52,12 @@ export const authService = {
   /**
    * Get currently active session user
    */
-  getCurrentUser(): UserProfile {
+  getCurrentUser(): UserProfile | null {
     try {
       const savedProfile = storage.getItem(STORAGE_KEY_PROFILE);
       if (savedProfile) {
         const parsed = JSON.parse(savedProfile);
-        if (parsed && parsed.id) {
+        if (parsed && parsed.id && parsed.role) {
           return parsed as UserProfile;
         }
       }
@@ -64,17 +65,24 @@ export const authService = {
       // ignore JSON parse error
     }
 
-    const savedRole = storage.getItem(STORAGE_KEY_ROLE) as UserRole | null;
-    if (savedRole && DEMO_USERS[savedRole]) {
-      return DEMO_USERS[savedRole];
+    if (isDemoMode()) {
+      const savedRole = storage.getItem(STORAGE_KEY_ROLE) as UserRole | null;
+      if (savedRole && DEMO_USERS[savedRole]) {
+        return DEMO_USERS[savedRole];
+      }
+      return DEMO_USERS.subcentre_employee;
     }
-    return DEMO_USERS.subcentre_employee;
+    return null;
   },
 
   /**
-   * Login as a specific role (Dev / Demo mode)
+   * Login as a specific role (Only available in Demo mode)
    */
   async loginWithRole(role: UserRole): Promise<UserProfile> {
+    if (!isDemoMode()) {
+      throw new Error('डेमो मोड अक्षम आहे. कृपया अधिकृत ईमेल किंवा मोबाईल द्वारे लॉगिन करा.');
+    }
+
     const user = DEMO_USERS[role];
     storage.setItem(STORAGE_KEY_ROLE, role);
     storage.setItem(STORAGE_KEY_PROFILE, JSON.stringify(user));
@@ -85,7 +93,7 @@ export const authService = {
         action: 'LOGIN',
         module: 'Authentication',
         record_id: user.id,
-        record_description: `${user.roleTitleMarathi} (${user.marathiName}) यशस्वी लॉगिन [भूमिका प्रवेश]`,
+        record_description: `${user.roleTitleMarathi} (${user.marathiName}) यशस्वी लॉगिन [डेमो भूमिका]`,
         new_values: { role: user.role, name: user.name, email: user.email },
         user,
       })
@@ -166,18 +174,13 @@ export const authService = {
           }
 
           if (!profileEntity) {
-            // If user has auth account but no profile created yet, assign default controller or employee
-            const isPhc = (data.user.email || '').includes('phc') || (data.user.email || '') === 'phbhada@gmail.com';
-            profileEntity = {
-              id: data.user.id,
-              auth_user_id: data.user.id,
-              role: isPhc ? AppUserRole.PHC_CONTROLLER : AppUserRole.SUBCENTRE_EMPLOYEE,
-              email: data.user.email || cleanId,
-              display_name: data.user.email?.split('@')[0] || 'आरोग्य कर्मचारी',
-              is_active: true,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            };
+            await supabase.auth.signOut();
+            throw new Error('वापरकर्त्याची प्रोफाइल सापडली नाही. कृपया प्रशासकाशी संपर्क साधा.');
+          }
+
+          if (!profileEntity.role || (profileEntity.role !== 'phc_controller' && profileEntity.role !== 'subcentre_employee' && profileEntity.role !== AppUserRole.PHC_CONTROLLER && profileEntity.role !== AppUserRole.SUBCENTRE_EMPLOYEE)) {
+            await supabase.auth.signOut();
+            throw new Error('वापरकर्त्याची भूमिका निश्चित करता आली नाही. कृपया प्रशासकाशी संपर्क साधा.');
           }
 
           // Check if account is active
@@ -240,6 +243,10 @@ export const authService = {
         new_values: { identifier: cleanId, reason: 'ACCOUNT_INACTIVE' },
       }).catch(() => {});
       throw new Error('आपले खाते सध्या निष्क्रिय आहे. कृपया प्रशासकाशी संपर्क साधा.');
+    }
+
+    if (!profileEntity.role) {
+      throw new Error('वापरकर्त्याची भूमिका निश्चित करता आली नाही. कृपया प्रशासकाशी संपर्क साधा.');
     }
 
     // Successful Login

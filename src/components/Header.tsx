@@ -40,7 +40,7 @@ export const Header: React.FC<HeaderProps> = ({
   isAccountModalOpen: controlledModalOpen,
   setIsAccountModalOpen: setControlledModalOpen,
 }) => {
-  const { user, role, switchRole, logout } = useAuth();
+  const { user, role, logout } = useAuth();
   const [internalModalOpen, setInternalModalOpen] = useState(false);
 
   const isModalOpen = controlledModalOpen !== undefined ? controlledModalOpen : internalModalOpen;

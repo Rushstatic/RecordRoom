@@ -116,45 +116,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="p-3 mx-3 mt-3 mb-1 bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200/80 rounded-xl">
           <div className="flex items-start gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-emerald-800 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
-              {role === 'phc_controller' ? 'PHC' : 'SC'}
+              {isPhcController ? 'PHC' : 'SC'}
             </div>
             <div className="overflow-hidden flex-1">
-              <div className="text-[10px] font-semibold text-emerald-900 uppercase tracking-wider">
-                सध्याची भूमिका
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-[10px] font-semibold text-emerald-900 uppercase tracking-wider">
+                  सध्याची भूमिका
+                </span>
+                <span className={`text-[9px] px-1.5 py-0.2 rounded font-bold ${
+                  isPhcController ? 'bg-amber-400 text-slate-950' : 'bg-emerald-200 text-emerald-900'
+                }`}>
+                  {isPhcController ? 'PHC नियंत्रक' : 'उपकेंद्र कर्मचारी'}
+                </span>
               </div>
-              <div className="text-xs font-bold text-slate-800 truncate">
-                {user?.marathiName || 'वापरकर्ता'}
+              <div className="text-xs font-bold text-slate-800 truncate mt-0.5">
+                {user?.marathiName || user?.name || 'वापरकर्ता'}
               </div>
               <div className="text-[11px] text-emerald-700 font-medium truncate">
-                {role === 'phc_controller' ? 'PHC नियंत्रक' : 'उपकेंद्र कर्मचारी'}
+                {user?.assignedSubcentre || user?.assignedPhc || (isPhcController ? 'प्रा.आ.के. नियंत्रण' : 'आरोग्य उपकेंद्र')}
               </div>
             </div>
-          </div>
-
-          {/* Quick Role Switcher */}
-          <div className="mt-2 pt-2 border-t border-emerald-200/60 grid grid-cols-2 gap-1">
-            <button
-              type="button"
-              onClick={() => switchRole('subcentre_employee')}
-              className={`py-1 px-1.5 rounded text-[10px] font-bold transition-all text-center cursor-pointer ${
-                role === 'subcentre_employee'
-                  ? 'bg-emerald-800 text-white shadow-2xs'
-                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
-              }`}
-            >
-              उपकेंद्र कर्मचारी
-            </button>
-            <button
-              type="button"
-              onClick={() => switchRole('phc_controller')}
-              className={`py-1 px-1.5 rounded text-[10px] font-bold transition-all text-center cursor-pointer ${
-                role === 'phc_controller'
-                  ? 'bg-emerald-800 text-white shadow-2xs'
-                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
-              }`}
-            >
-              PHC नियंत्रक
-            </button>
           </div>
         </div>
 
@@ -342,109 +323,112 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </span>
             </button>
 
-            {/* 5. Master Data Sub-group */}
-            <div className="pt-1">
-              <button
-                type="button"
-                onClick={() => setIsMasterDataExpanded(!isMasterDataExpanded)}
-                className="w-full flex items-center justify-between px-3 py-1.5 text-slate-600 hover:text-slate-900 text-xs font-semibold rounded-md hover:bg-slate-50 cursor-pointer"
-              >
-                <div className="flex items-center gap-2">
-                  <Building2 className="w-3.5 h-3.5 text-emerald-800" />
-                  <span>Master Data (मास्टर डेटा)</span>
-                </div>
-                {isMasterDataExpanded ? (
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                ) : (
-                  <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                )}
-              </button>
-
-              {isMasterDataExpanded && (
-                <div className="pl-6 pr-1 py-1 space-y-0.5 border-l-2 border-emerald-100 ml-3.5">
+            {/* PHC Controller Only: Master Data & User Management */}
+            {isPhcController && (
+              <>
+                {/* 5. Master Data Sub-group */}
+                <div className="pt-1">
                   <button
                     type="button"
-                    onClick={() => handleItemClick('phc-master')}
-                    className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-left text-[11px] transition-all cursor-pointer ${
-                      currentPage === 'phc-master'
-                        ? 'bg-emerald-700 text-white font-bold'
-                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                    }`}
+                    onClick={() => setIsMasterDataExpanded(!isMasterDataExpanded)}
+                    className="w-full flex items-center justify-between px-3 py-1.5 text-slate-600 hover:text-slate-900 text-xs font-semibold rounded-md hover:bg-slate-50 cursor-pointer"
                   >
-                    <span>प्रा.आ. केंद्र मास्टर (PHC)</span>
-                    {isPhcController && (
-                      <span className="text-[9px] bg-amber-100 text-amber-900 font-bold px-1 rounded">
-                        नियंत्रक
-                      </span>
+                    <div className="flex items-center gap-2">
+                      <Building2 className="w-3.5 h-3.5 text-emerald-800" />
+                      <span>Master Data (मास्टर डेटा)</span>
+                    </div>
+                    {isMasterDataExpanded ? (
+                      <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                    ) : (
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
                     )}
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => handleItemClick('subcentre-master')}
-                    className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-left text-[11px] transition-all cursor-pointer ${
-                      currentPage === 'subcentre-master'
-                        ? 'bg-emerald-700 text-white font-bold'
-                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                    }`}
-                  >
-                    <span>उपकेंद्र मास्टर (Subcentre)</span>
-                  </button>
+                  {isMasterDataExpanded && (
+                    <div className="pl-6 pr-1 py-1 space-y-0.5 border-l-2 border-emerald-100 ml-3.5">
+                      <button
+                        type="button"
+                        onClick={() => handleItemClick('phc-master')}
+                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-left text-[11px] transition-all cursor-pointer ${
+                          currentPage === 'phc-master'
+                            ? 'bg-emerald-700 text-white font-bold'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                      >
+                        <span>प्रा.आ. केंद्र मास्टर (PHC)</span>
+                        <span className="text-[9px] bg-amber-100 text-amber-900 font-bold px-1 rounded">
+                          नियंत्रक
+                        </span>
+                      </button>
 
-                  <button
-                    type="button"
-                    onClick={() => handleItemClick('village-master')}
-                    className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-left text-[11px] transition-all cursor-pointer ${
-                      currentPage === 'village-master'
-                        ? 'bg-emerald-700 text-white font-bold'
-                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                    }`}
-                  >
-                    <span>गाव मास्टर (Village)</span>
-                  </button>
+                      <button
+                        type="button"
+                        onClick={() => handleItemClick('subcentre-master')}
+                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-left text-[11px] transition-all cursor-pointer ${
+                          currentPage === 'subcentre-master'
+                            ? 'bg-emerald-700 text-white font-bold'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                      >
+                        <span>उपकेंद्र मास्टर (Subcentre)</span>
+                      </button>
 
-                  <button
-                    type="button"
-                    onClick={() => handleItemClick('employee-master')}
-                    className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-left text-[11px] transition-all cursor-pointer ${
-                      currentPage === 'employee-master'
-                        ? 'bg-emerald-700 text-white font-bold'
-                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                    }`}
-                  >
-                    <span>कर्मचारी मास्टर (Employee)</span>
-                  </button>
+                      <button
+                        type="button"
+                        onClick={() => handleItemClick('village-master')}
+                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-left text-[11px] transition-all cursor-pointer ${
+                          currentPage === 'village-master'
+                            ? 'bg-emerald-700 text-white font-bold'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                      >
+                        <span>गाव मास्टर (Village)</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleItemClick('employee-master')}
+                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-left text-[11px] transition-all cursor-pointer ${
+                          currentPage === 'employee-master'
+                            ? 'bg-emerald-700 text-white font-bold'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                      >
+                        <span>कर्मचारी मास्टर (Employee)</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            {/* 6. User Management */}
-            <button
-              id="sidebar-nav-user-management"
-              type="button"
-              onClick={() => handleItemClick('user-management')}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs font-medium transition-all cursor-pointer ${
-                currentPage === 'user-management'
-                  ? 'bg-emerald-800 text-white font-bold shadow-xs'
-                  : 'text-slate-700 hover:bg-slate-100 hover:text-emerald-900'
-              }`}
-            >
-              <div className="flex items-center gap-2 truncate">
-                <UserCog
-                  className={`w-4 h-4 shrink-0 ${
-                    currentPage === 'user-management' ? 'text-amber-400' : 'text-slate-500'
+                {/* 6. User Management */}
+                <button
+                  id="sidebar-nav-user-management"
+                  type="button"
+                  onClick={() => handleItemClick('user-management')}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs font-medium transition-all cursor-pointer ${
+                    currentPage === 'user-management'
+                      ? 'bg-emerald-800 text-white font-bold shadow-xs'
+                      : 'text-slate-700 hover:bg-slate-100 hover:text-emerald-900'
                   }`}
-                />
-                <span className="truncate">वापरकर्ता व्यवस्थापन (RBAC)</span>
-              </div>
-              <span
-                className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${
-                  currentPage === 'user-management' ? 'bg-amber-400 text-slate-950' : 'bg-slate-100 text-slate-600'
-                }`}
-              >
-                {isPhcController ? 'नियंत्रक' : 'Scope'}
-              </span>
-            </button>
+                >
+                  <div className="flex items-center gap-2 truncate">
+                    <UserCog
+                      className={`w-4 h-4 shrink-0 ${
+                        currentPage === 'user-management' ? 'text-amber-400' : 'text-slate-500'
+                      }`}
+                    />
+                    <span className="truncate">वापरकर्ता व्यवस्थापन (RBAC)</span>
+                  </div>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${
+                      currentPage === 'user-management' ? 'bg-amber-400 text-slate-950' : 'bg-slate-100 text-slate-600'
+                    }`}
+                  >
+                    नियंत्रक
+                  </span>
+                </button>
+              </>
+            )}
           </div>
 
           {/* ============================================================== */}
@@ -553,26 +537,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
             </button>
 
-            {/* 5. Activity / Audit */}
-            <button
-              id="sidebar-nav-backup-audit"
-              type="button"
-              onClick={() => handleItemClick('backup-audit')}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs font-medium transition-all cursor-pointer ${
-                currentPage === 'backup-audit'
-                  ? 'bg-emerald-800 text-white font-bold shadow-xs'
-                  : 'text-slate-700 hover:bg-slate-100 hover:text-emerald-900'
-              }`}
-            >
-              <div className="flex items-center gap-2 truncate">
-                <Database
-                  className={`w-4 h-4 shrink-0 ${
-                    currentPage === 'backup-audit' ? 'text-amber-400' : 'text-slate-500'
-                  }`}
-                />
-                <span className="truncate">Activity / Audit Log</span>
-              </div>
-            </button>
+            {/* 5. Activity / Audit (PHC Controller Only) */}
+            {isPhcController && (
+              <button
+                id="sidebar-nav-backup-audit"
+                type="button"
+                onClick={() => handleItemClick('backup-audit')}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs font-medium transition-all cursor-pointer ${
+                  currentPage === 'backup-audit'
+                    ? 'bg-emerald-800 text-white font-bold shadow-xs'
+                    : 'text-slate-700 hover:bg-slate-100 hover:text-emerald-900'
+                }`}
+              >
+                <div className="flex items-center gap-2 truncate">
+                  <Database
+                    className={`w-4 h-4 shrink-0 ${
+                      currentPage === 'backup-audit' ? 'text-amber-400' : 'text-slate-500'
+                    }`}
+                  />
+                  <span className="truncate">Activity / Audit Log</span>
+                </div>
+              </button>
+            )}
           </div>
         </nav>
 

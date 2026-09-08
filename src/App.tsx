@@ -27,11 +27,34 @@ import { MyAccountModal } from './components/auth/MyAccountModal';
 import TemplateBuilderPage from './pages/TemplateBuilderPage';
 import TemplateFieldsPage from './pages/TemplateFieldsPage';
 import DynamicRegisterPage from './pages/DynamicRegisterPage';
+import { ShieldAlert } from 'lucide-react';
+
+const PHC_ONLY_PAGES: PageId[] = [
+  'phc-master',
+  'subcentre-master',
+  'village-master',
+  'employee-master',
+  'template-builder',
+  'template-fields',
+  'user-management',
+  'backup-audit',
+];
 
 const AppContent: React.FC = () => {
-  const { user, isLoggedIn } = useAuth();
+  const { user, role, isLoggedIn, isLoading } = useAuth();
   const [currentPage, setCurrentPage] = useState<PageId>('dashboard');
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
+
+  // While checking auth status
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white p-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-amber-400 border-t-transparent mb-4"></div>
+        <p className="text-base font-bold text-white tracking-wide">आरोग्य उपकेंद्र रेकॉर्ड कीपिंग सिस्टीम</p>
+        <p className="text-xs text-emerald-200/80 mt-1">प्रणाली सुरू होत आहे, कृपया प्रतीक्षा करा...</p>
+      </div>
+    );
+  }
 
   // If user is not logged in or navigates to login, render Login page
   if (!isLoggedIn || currentPage === 'login') {
@@ -41,6 +64,32 @@ const AppContent: React.FC = () => {
           setCurrentPage('dashboard');
         }}
       />
+    );
+  }
+
+  // Route-level Authorization Guard
+  if (role !== 'phc_controller' && PHC_ONLY_PAGES.includes(currentPage)) {
+    return (
+      <AppLayout currentPage={currentPage} onNavigate={setCurrentPage}>
+        <div className="min-h-[60vh] flex flex-col items-center justify-center p-6 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center mb-4 shadow-inner">
+            <ShieldAlert className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl font-bold text-slate-900 mb-2">
+            या पानावर जाण्याची आपल्याला परवानगी नाही
+          </h2>
+          <p className="text-sm text-slate-600 max-w-md mb-6 leading-relaxed">
+            हे पृष्ठ केवळ <strong>PHC नियंत्रक (PHC Controller)</strong> यांच्या अधिकारात राखीव आहे. उपकेंद्र कर्मचाऱ्यांसाठी हे पान उपलब्ध नाही.
+          </p>
+          <button
+            type="button"
+            onClick={() => setCurrentPage('dashboard')}
+            className="bg-emerald-800 hover:bg-emerald-900 active:bg-emerald-950 text-white text-sm font-bold px-6 py-2.5 rounded-xl shadow-md cursor-pointer transition-colors"
+          >
+            डॅशबोर्डवर परत जा →
+          </button>
+        </div>
+      </AppLayout>
     );
   }
 

@@ -1,6 +1,7 @@
 import { storage } from '../lib/storage';
 import { PhcMaster, SubcentreMaster, VillageMaster, EmployeeMaster, DashboardMetrics } from '../types';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { isDemoMode } from '../lib/env';
 
 // Standard realistic Seed Data for offline / pre-Supabase setup
 const DEFAULT_PHCS: PhcMaster[] = [
@@ -150,12 +151,15 @@ function getLocal<T>(key: string, fallback: T[]): T[] {
   try {
     const raw = storage.getItem(key);
     if (!raw) {
-      storage.setItem(key, JSON.stringify(fallback));
-      return fallback;
+      if (isDemoMode()) {
+        storage.setItem(key, JSON.stringify(fallback));
+        return fallback;
+      }
+      return [];
     }
     return JSON.parse(raw);
   } catch (e) {
-    return fallback;
+    return isDemoMode() ? fallback : [];
   }
 }
 
@@ -189,7 +193,10 @@ export const masterDataService = {
           .from('phc_master')
           .select('*')
           .order('phc_name', { ascending: true });
-        if (!error && data) return data;
+        if (!error && data) {
+          setLocal(KEYS.PHC, data);
+          return data;
+        }
       } catch (e) {
         console.warn('Falling back to local storage for PHC', e);
       }
@@ -275,13 +282,13 @@ export const masterDataService = {
           .order('subcentre_name', { ascending: true });
         if (!error && data) {
           subcentres = data;
+          setLocal(KEYS.SUBCENTRE, data);
         }
       } catch (e) {
         console.warn('Falling back to local storage for Subcentres', e);
+        subcentres = getLocal<SubcentreMaster>(KEYS.SUBCENTRE, DEFAULT_SUBCENTRES);
       }
-    }
-
-    if (subcentres.length === 0) {
+    } else {
       subcentres = getLocal<SubcentreMaster>(KEYS.SUBCENTRE, DEFAULT_SUBCENTRES);
     }
 
@@ -377,13 +384,13 @@ export const masterDataService = {
           .order('village_name', { ascending: true });
         if (!error && data) {
           villages = data;
+          setLocal(KEYS.VILLAGE, data);
         }
       } catch (e) {
         console.warn('Falling back to local storage for Villages', e);
+        villages = getLocal<VillageMaster>(KEYS.VILLAGE, DEFAULT_VILLAGES);
       }
-    }
-
-    if (villages.length === 0) {
+    } else {
       villages = getLocal<VillageMaster>(KEYS.VILLAGE, DEFAULT_VILLAGES);
     }
 
@@ -481,13 +488,13 @@ export const masterDataService = {
           .order('employee_name', { ascending: true });
         if (!error && data) {
           employees = data;
+          setLocal(KEYS.EMPLOYEE, data);
         }
       } catch (e) {
         console.warn('Falling back to local storage for Employees', e);
+        employees = getLocal<EmployeeMaster>(KEYS.EMPLOYEE, DEFAULT_EMPLOYEES);
       }
-    }
-
-    if (employees.length === 0) {
+    } else {
       employees = getLocal<EmployeeMaster>(KEYS.EMPLOYEE, DEFAULT_EMPLOYEES);
     }
 

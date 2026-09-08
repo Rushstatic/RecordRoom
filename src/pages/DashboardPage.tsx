@@ -647,13 +647,15 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                 <h4 className="text-xs sm:text-sm font-bold text-slate-900">Employee Performance (कर्मचारी कामगिरी)</h4>
                 <p className="text-[11px] text-slate-500">आरोग्य कर्मचारी व स्मीअर कोडनिहाय संकलन</p>
               </div>
-              <button
-                type="button"
-                onClick={() => onNavigate('employee-master')}
-                className="text-[11px] text-indigo-700 font-bold hover:underline cursor-pointer"
-              >
-                कर्मचारी यादी →
-              </button>
+              {isPhcController && (
+                <button
+                  type="button"
+                  onClick={() => onNavigate('employee-master')}
+                  className="text-[11px] text-indigo-700 font-bold hover:underline cursor-pointer"
+                >
+                  कर्मचारी यादी →
+                </button>
+              )}
             </div>
 
             <div className="space-y-3 py-2">
@@ -686,70 +688,72 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
         </div>
       </div>
 
-      {/* 5. Master Architecture Cards (Total PHCs, Subcentres, Villages, Employees) */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-2">
-            <Building2 className="w-4 h-4 text-emerald-700" />
-            <span>मास्टर डेटा सांख्यिकी सारांश (Master Statistics)</span>
-          </h3>
-          <span className="text-[11px] text-slate-500">
-            {isSupabaseConfigured() ? 'Supabase Database' : 'Local Offline Master'}
-          </span>
+      {/* 5. Master Architecture Cards (Total PHCs, Subcentres, Villages, Employees) - PHC Controller Only */}
+      {isPhcController && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-emerald-700" />
+              <span>मास्टर डेटा सांख्यिकी सारांश (Master Statistics)</span>
+            </h3>
+            <span className="text-[11px] text-slate-500">
+              {isSupabaseConfigured() ? 'Supabase Database' : 'Local Offline Master'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+            <div
+              onClick={() => onNavigate('phc-master')}
+              className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs hover:shadow-md transition-shadow cursor-pointer group"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-semibold text-slate-600">Total PHCs</span>
+                <Building2 className="w-4 h-4 text-blue-700" />
+              </div>
+              <div className="text-2xl font-bold text-slate-900">{metrics.totalPhcs}</div>
+              <div className="text-[11px] text-slate-500 mt-0.5">प्राथमिक आरोग्य केंद्रे</div>
+            </div>
+
+            <div
+              onClick={() => onNavigate('subcentre-master')}
+              className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs hover:shadow-md transition-shadow cursor-pointer group"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-semibold text-slate-600">Total Subcentres</span>
+                <Home className="w-4 h-4 text-emerald-700" />
+              </div>
+              <div className="text-2xl font-bold text-slate-900">{metrics.totalSubcentres}</div>
+              <div className="text-[11px] text-slate-500 mt-0.5">आरोग्य उपकेंद्रे</div>
+            </div>
+
+            <div
+              onClick={() => onNavigate('village-master')}
+              className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs hover:shadow-md transition-shadow cursor-pointer group"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-semibold text-slate-600">Total Villages</span>
+                <MapPin className="w-4 h-4 text-amber-700" />
+              </div>
+              <div className="text-2xl font-bold text-slate-900">{metrics.totalVillages}</div>
+              <div className="text-[11px] text-slate-500 mt-0.5">एकूण समाविष्ट गावे</div>
+            </div>
+
+            <div
+              onClick={() => onNavigate('employee-master')}
+              className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs hover:shadow-md transition-shadow cursor-pointer group"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-semibold text-slate-600">Total Employees</span>
+                <Users className="w-4 h-4 text-indigo-700" />
+              </div>
+              <div className="text-2xl font-bold text-slate-900">{metrics.totalEmployees}</div>
+              <div className="text-[11px] text-slate-500 mt-0.5">
+                सक्रिय: {metrics.activeEmployees}
+              </div>
+            </div>
+          </div>
         </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-          <div
-            onClick={() => onNavigate('phc-master')}
-            className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs hover:shadow-md transition-shadow cursor-pointer group"
-          >
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-semibold text-slate-600">Total PHCs</span>
-              <Building2 className="w-4 h-4 text-blue-700" />
-            </div>
-            <div className="text-2xl font-bold text-slate-900">{metrics.totalPhcs}</div>
-            <div className="text-[11px] text-slate-500 mt-0.5">प्राथमिक आरोग्य केंद्रे</div>
-          </div>
-
-          <div
-            onClick={() => onNavigate('subcentre-master')}
-            className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs hover:shadow-md transition-shadow cursor-pointer group"
-          >
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-semibold text-slate-600">Total Subcentres</span>
-              <Home className="w-4 h-4 text-emerald-700" />
-            </div>
-            <div className="text-2xl font-bold text-slate-900">{metrics.totalSubcentres}</div>
-            <div className="text-[11px] text-slate-500 mt-0.5">आरोग्य उपकेंद्रे</div>
-          </div>
-
-          <div
-            onClick={() => onNavigate('village-master')}
-            className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs hover:shadow-md transition-shadow cursor-pointer group"
-          >
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-semibold text-slate-600">Total Villages</span>
-              <MapPin className="w-4 h-4 text-amber-700" />
-            </div>
-            <div className="text-2xl font-bold text-slate-900">{metrics.totalVillages}</div>
-            <div className="text-[11px] text-slate-500 mt-0.5">एकूण समाविष्ट गावे</div>
-          </div>
-
-          <div
-            onClick={() => onNavigate('employee-master')}
-            className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs hover:shadow-md transition-shadow cursor-pointer group"
-          >
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-semibold text-slate-600">Total Employees</span>
-              <Users className="w-4 h-4 text-indigo-700" />
-            </div>
-            <div className="text-2xl font-bold text-slate-900">{metrics.totalEmployees}</div>
-            <div className="text-[11px] text-slate-500 mt-0.5">
-              सक्रिय: {metrics.activeEmployees}
-            </div>
-          </div>
-        </div>
-      </div>
+      )}
 
       {/* SQL View Modal */}
       {showSqlModal && (
