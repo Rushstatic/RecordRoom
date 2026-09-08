@@ -1,0 +1,33 @@
+{
+  "id": "/",
+  "name": "आरोग्य उपकेंद्र रेकॉर्ड कीपिंग सिस्टीम",
+  "short_name": "आरोग्य उपकेंद्र",
+  "description": "सार्वजनिक आरोग्य विभाग - उपकेंद्र रेकॉर्ड कीपिंग आणि मलेरिया रक्त नमुना व्यवस्थापन प्रणाली (NVBDCP)",
+  "theme_color": "#064e3b",
+  "background_color": "#064e3b",
+  "display": "standalone",
+  "orientation": "portrait",
+  "start_url": "/",
+  "scope": "/",
+  "lang": "mr",
+  "icons": [
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

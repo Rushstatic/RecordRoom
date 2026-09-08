@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGradMask" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#064e3b" />
+      <stop offset="50%" stop-color="#047857" />
+      <stop offset="100%" stop-color="#065f46" />
+    </linearGradient>
+    <linearGradient id="goldGradMask" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a" />
+      <stop offset="50%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+  </defs>
+
+  <!-- Full-bleed background for maskable icon -->
+  <rect width="512" height="512" fill="url(#bgGradMask)" />
+
+  <!-- Center Emblem Group scaled inside safe zone (within 80% radius) -->
+  <g transform="translate(51.2, 51.2) scale(0.8)">
+    <path d="M216 116 h80 v100 h100 v80 h-100 v100 h-80 v-100 h-100 v-80 h100 z" fill="#ffffff" />
+    <path d="M226 126 h60 v90 h90 v60 h-90 v90 h-60 v-90 h-90 v-60 h90 z" fill="url(#goldGradMask)" />
+
+    <circle cx="256" cy="256" r="34" fill="#064e3b" />
+    <circle cx="256" cy="256" r="22" fill="#ffffff" />
+    <circle cx="256" cy="256" r="14" fill="#d97706" />
+
+    <text x="256" y="440" font-family="'Noto Sans Devanagari', 'Segoe UI', sans-serif" font-size="34" font-weight="bold" fill="#ffffff" text-anchor="middle" letter-spacing="2">
+      आरोग्य उपकेंद्र
+    </text>
+  </g>
+</svg>

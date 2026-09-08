@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+@media print {
+  /* Hide all application layout, sidebars, headers and interactive chrome */
+  body * {
+    visibility: hidden;
+  }
+
+  /* Make printable report visible and take full A4 sheet */
+  #printable-malaria-report,
+  #printable-malaria-report *,
+  #printable-malaria-general-report,
+  #printable-malaria-general-report *,
+  #printable-malaria-coverage-report,
+  #printable-malaria-coverage-report *,
+  #printable-malaria-target-report,
+  #printable-malaria-target-report * {
+    visibility: visible;
+  }
+
+  #printable-malaria-report,
+  #printable-malaria-general-report,
+  #printable-malaria-coverage-report,
+  #printable-malaria-target-report {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 8mm 12mm !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 8mm;
+  }
+
+  tr {
+    page-break-inside: avoid;
+  }
+}

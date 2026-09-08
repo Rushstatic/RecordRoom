@@ -1,0 +1,6 @@
+{
+  "name": "आरोग्य उपकेंद्र रेकॉर्ड कीपिंग सिस्टीम",
+  "description": "सार्वजनिक आरोग्य विभाग - उपकेंद्र रेकॉर्ड कीपिंग आणि मलेरिया रक्त नमुना व्यवस्थापन प्रणाली",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
