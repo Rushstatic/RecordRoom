@@ -14,11 +14,11 @@ const DEFAULT_USER_PROFILES: UserProfileEntity[] = [
     auth_user_id: '550e8400-e29b-41d4-a716-446655440101',
     role: AppUserRole.PHC_CONTROLLER,
     email: 'phbhada@gmail.com',
-    mobile: '9822012345',
-    display_name: 'डॉ. अमोल एस. पाटील',
+    mobile: '9730266586',
+    display_name: 'श्री. गोविंद हिप्परगेकर',
     phc_id: '9dc0d6cf-d4fe-4554-a5ec-7d4f63a5d8da',
     subcentre_id: null,
-    employee_id: null,
+    employee_id: '01258fa4-ab98-47e1-884d-28caea471410',
     is_active: true,
     last_login_at: new Date().toISOString(),
     created_at: new Date(Date.now() - 30 * 86400000).toISOString(),
@@ -105,17 +105,37 @@ export const userService = {
 
     const saved = storage.getItem(STORAGE_KEY);
     if (!saved) {
-      if (isDemoMode()) {
-        storage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_USER_PROFILES));
-        return DEFAULT_USER_PROFILES;
-      }
-      return [];
+      storage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_USER_PROFILES));
+      return DEFAULT_USER_PROFILES;
     }
 
     try {
-      return JSON.parse(saved);
+      const parsed: UserProfileEntity[] = JSON.parse(saved);
+      // Self-heal: ensure Master Admin Govind Hippargekar (9730266586) is updated in profiles
+      const adminProfile = parsed.find(
+        (p) => p.email === 'phbhada@gmail.com' || p.mobile === '9730266586' || p.mobile === '9822012345'
+      );
+      if (adminProfile) {
+        let changed = false;
+        if (adminProfile.mobile !== '9730266586') {
+          adminProfile.mobile = '9730266586';
+          changed = true;
+        }
+        if (!adminProfile.display_name.includes('गोविंद') && !adminProfile.display_name.includes('Govind')) {
+          adminProfile.display_name = 'श्री. गोविंद हिप्परगेकर';
+          changed = true;
+        }
+        if (changed) {
+          storage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+        }
+      } else {
+        parsed.unshift(DEFAULT_USER_PROFILES[0]);
+        storage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+      }
+      return parsed;
     } catch {
-      return isDemoMode() ? DEFAULT_USER_PROFILES : [];
+      storage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_USER_PROFILES));
+      return DEFAULT_USER_PROFILES;
     }
   },
 
@@ -143,18 +163,32 @@ export const userService = {
   },
 
   /**
-   * Find profile by Email or Mobile
+   * Find profile by Email or Mobile (supports raw, +91, with spaces/dashes)
    */
   async getProfileByEmailOrMobile(identifier: string): Promise<UserProfileEntity | null> {
-    const cleanId = identifier.trim().toLowerCase();
+    const rawId = identifier.trim();
+    if (!rawId) return null;
+
+    const cleanId = rawId.toLowerCase();
+    const numericOnly = rawId.replace(/\D/g, '');
+    const standardMobile =
+      numericOnly.length === 12 && numericOnly.startsWith('91')
+        ? numericOnly.slice(2)
+        : numericOnly.length === 11 && numericOnly.startsWith('0')
+        ? numericOnly.slice(1)
+        : numericOnly;
 
     if (isSupabaseConfigured() && supabase) {
       try {
-        const { data, error } = await supabase
-          .from('user_profiles')
-          .select('*')
-          .or(`email.ilike.${cleanId},mobile.eq.${cleanId}`)
-          .maybeSingle();
+        let query = supabase.from('user_profiles').select('*');
+        if (cleanId.includes('@')) {
+          query = query.ilike('email', cleanId);
+        } else if (standardMobile) {
+          query = query.or(`mobile.eq.${standardMobile},mobile.eq.${rawId},mobile.eq.+91${standardMobile}`);
+        } else {
+          query = query.eq('mobile', rawId);
+        }
+        const { data, error } = await query.maybeSingle();
         if (!error && data) {
           return data as UserProfileEntity;
         }
@@ -168,7 +202,10 @@ export const userService = {
       profiles.find(
         (p) =>
           (p.email && p.email.toLowerCase() === cleanId) ||
-          (p.mobile && p.mobile.toLowerCase() === cleanId)
+          (p.mobile &&
+            (p.mobile === rawId ||
+              p.mobile === cleanId ||
+              (standardMobile && p.mobile.replace(/\D/g, '') === standardMobile)))
       ) || null
     );
   },

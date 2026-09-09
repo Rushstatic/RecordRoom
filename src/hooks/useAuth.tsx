@@ -82,15 +82,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       }
 
-      // If no Supabase session or not configured, check demo mode
-      if (isDemoMode()) {
-        const localUser = authService.getCurrentUser();
-        if (localUser && storage.getItem('arogya_is_logged_in') === 'true') {
-          setUser(localUser);
-          setIsLoggedIn(true);
-          setAuthError(null);
-          return;
+      // If no Supabase session or not configured, check stored active session
+      const localUser = authService.getCurrentUser();
+      if (localUser && storage.getItem('arogya_is_logged_in') === 'true') {
+        let ctx = null;
+        try {
+          ctx = await currentUserService.getCurrentUserContext();
+        } catch (e) {
+          console.warn('[AuthProvider] Local context resolution fallback:', e);
         }
+        if (ctx) {
+          setUserContext(ctx);
+          setUser(userContextToUserProfile(ctx));
+        } else {
+          setUser(localUser);
+        }
+        setIsLoggedIn(true);
+        setAuthError(null);
+        return;
       }
 
       // No active session found
@@ -213,18 +222,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsLoading(true);
     setAuthError(null);
     try {
-      await authService.loginWithEmail(emailOrMobile, pass);
+      const loggedUser = await authService.loginWithEmail(emailOrMobile, pass);
       // Immediately resolve authoritative fresh context
-      const ctx = await currentUserService.getCurrentUserContext();
+      let ctx = null;
+      try {
+        ctx = await currentUserService.getCurrentUserContext();
+      } catch (e) {
+        console.warn('[AuthProvider] Context resolution warning after login:', e);
+      }
+
       if (ctx) {
         setUserContext(ctx);
         const mappedUser = userContextToUserProfile(ctx);
         setUser(mappedUser);
-        setIsLoggedIn(true);
-        setAuthError(null);
       } else {
-        throw new Error('आपल्या खात्याची कर्मचारी माहिती उपलब्ध नाही. कृपया PHC नियंत्रकाशी संपर्क साधा.');
+        setUser(loggedUser);
       }
+      setIsLoggedIn(true);
+      setAuthError(null);
     } catch (err: any) {
       setAuthError(err.message || 'लॉगिन अयशस्वी.');
       throw err;

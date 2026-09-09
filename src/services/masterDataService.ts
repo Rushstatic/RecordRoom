@@ -85,6 +85,17 @@ const DEFAULT_VILLAGES: VillageMaster[] = [
 
 const DEFAULT_EMPLOYEES: EmployeeMaster[] = [
   {
+    id: '01258fa4-ab98-47e1-884d-28caea471410',
+    subcentre_id: '4e6bf085-07e6-4c93-b366-5fb61fd1c618',
+    employee_name: 'श्री. गोविंद हिप्परगेकर',
+    designation: 'मास्टर ॲडमिन / प्रा.आ.के. नियंत्रक',
+    mobile_number: '9730266586',
+    email: 'phbhada@gmail.com',
+    malaria_smear_code: 'BHADA-ADM',
+    is_active: true,
+    created_at: new Date().toISOString(),
+  },
+  {
     id: 'cbbe9908-d712-4f22-978b-061d7abcf42b',
     subcentre_id: '4e6bf085-07e6-4c93-b366-5fb61fd1c618',
     employee_name: 'श्री अनिल एकनाथ भराडे',
@@ -152,15 +163,12 @@ function getLocal<T>(key: string, fallback: T[]): T[] {
   try {
     const raw = storage.getItem(key);
     if (!raw) {
-      if (isDemoMode()) {
-        storage.setItem(key, JSON.stringify(fallback));
-        return fallback;
-      }
-      return [];
+      storage.setItem(key, JSON.stringify(fallback));
+      return fallback;
     }
     return JSON.parse(raw);
   } catch (e) {
-    return isDemoMode() ? fallback : [];
+    return fallback;
   }
 }
 

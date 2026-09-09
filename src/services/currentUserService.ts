@@ -2,6 +2,7 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { isDemoMode } from '../lib/env';
 import { UserRole, AppUserRole, UserProfile, UserProfileEntity, EmployeeMaster } from '../types';
 import { DEMO_USERS } from './authService';
+import { storage } from '../lib/storage';
 
 export interface CurrentUserContext {
   authUserId: string;
@@ -26,6 +27,35 @@ export interface CurrentUserContext {
 }
 
 /**
+ * Transforms a UserProfile into a CurrentUserContext
+ */
+export function mapUserProfileToContext(user: UserProfile): CurrentUserContext {
+  const isController = user.role === 'phc_controller';
+  return {
+    authUserId: user.authUserId || user.id,
+    profileId: user.id,
+    role: user.role,
+    employeeId: user.employeeId || (isController ? '01258fa4-ab98-47e1-884d-28caea471410' : null),
+    employeeName: user.marathiName || user.name,
+    designation: user.roleTitleMarathi || (isController ? 'मास्टर ॲडमिन / प्रा.आ.के. नियंत्रक' : 'आरोग्य कर्मचारी'),
+    mobile: user.phone || null,
+    email: user.email || null,
+    smearCode: user.smearCode || undefined,
+    phcId: user.phcId || '9dc0d6cf-d4fe-4554-a5ec-7d4f63a5d8da',
+    phcName: user.assignedPhc || 'प्राथमिक आरोग्य केंद्र भादा',
+    subcentreId: user.subcentreId || null,
+    subcentreName: user.assignedSubcentre || (isController ? 'सर्व उपकेंद्रे' : 'शिवली'),
+    applicableSubcentreIds: isController ? ['all-subcentres'] : [user.subcentreId || '4e6bf085-07e6-4c93-b366-5fb61fd1c618'],
+    applicableVillageIds: [],
+    isActive: true,
+    primaryPosting: {
+      subcentreId: user.subcentreId || null,
+      subcentreName: user.assignedSubcentre || (isController ? 'सर्व उपकेंद्रे' : 'शिवली'),
+    },
+  };
+}
+
+/**
  * Transforms a fully resolved CurrentUserContext into the standard UserProfile interface
  * expected by existing legacy components across the app.
  */
@@ -38,7 +68,7 @@ export function userContextToUserProfile(ctx: CurrentUserContext): UserProfile {
     marathiName: ctx.employeeName,
     role: ctx.role,
     roleTitleMarathi: isController
-      ? 'प्रा.आ.के. नियंत्रक / वैद्यकीय अधिकारी'
+      ? 'मास्टर ॲडमिन / प्रा.आ.के. नियंत्रक'
       : ctx.designation || 'उपकेंद्र आरोग्य कर्मचारी',
     email: ctx.email || '',
     phone: ctx.mobile || '',
@@ -64,32 +94,22 @@ export const currentUserService = {
 
     // 1. If Supabase is NOT configured:
     if (!isSupabase) {
-      if (isDemoMode()) {
-        const demoUser = DEMO_USERS.subcentre_employee;
-        return {
-          authUserId: demoUser.authUserId || '550e8400-e29b-41d4-a716-446655440102',
-          profileId: demoUser.id,
-          role: demoUser.role,
-          employeeId: demoUser.employeeId || '01258fa4-ab98-47e1-884d-28caea471416',
-          employeeName: demoUser.marathiName,
-          designation: demoUser.roleTitleMarathi,
-          mobile: demoUser.phone || null,
-          email: demoUser.email || null,
-          smearCode: demoUser.smearCode || '54V3',
-          phcId: demoUser.phcId || '9dc0d6cf-d4fe-4554-a5ec-7d4f63a5d8da',
-          phcName: demoUser.assignedPhc || 'प्राथमिक आरोग्य केंद्र भादा',
-          subcentreId: demoUser.subcentreId || '4e6bf085-07e6-4c93-b366-5fb61fd1c618',
-          subcentreName: demoUser.assignedSubcentre || 'शिवली',
-          applicableSubcentreIds: [demoUser.subcentreId || '4e6bf085-07e6-4c93-b366-5fb61fd1c618'],
-          applicableVillageIds: [],
-          isActive: true,
-          primaryPosting: {
-            subcentreId: demoUser.subcentreId || '4e6bf085-07e6-4c93-b366-5fb61fd1c618',
-            subcentreName: demoUser.assignedSubcentre || 'शिवली',
-          },
-        };
+      try {
+        const storedProfile = storage.getItem('arogya_current_user_profile');
+        if (storedProfile && storage.getItem('arogya_is_logged_in') === 'true') {
+          const parsed = JSON.parse(storedProfile);
+          if (parsed && parsed.role) {
+            return mapUserProfileToContext(parsed);
+          }
+        }
+      } catch (e) {
+        console.warn('Error reading stored user profile:', e);
       }
-      throw new Error('Supabase डेटाबेस कॉन्फिगर केलेला नाही. कृपया सिस्टीम ॲडमिनशी संपर्क साधा.');
+
+      if (isDemoMode()) {
+        return null;
+      }
+      return null;
     }
 
     // 2. Fetch active Supabase session
@@ -101,7 +121,18 @@ export const currentUserService = {
 
     const sessionUser = sessionData?.session?.user;
     if (!sessionUser) {
-      // In demo mode with no session, return null so login page can be shown
+      // Check if user has active local session
+      try {
+        const storedProfile = storage.getItem('arogya_current_user_profile');
+        if (storedProfile && storage.getItem('arogya_is_logged_in') === 'true') {
+          const parsed = JSON.parse(storedProfile);
+          if (parsed && parsed.role) {
+            return mapUserProfileToContext(parsed);
+          }
+        }
+      } catch (e) {
+        console.warn('Error reading stored user profile:', e);
+      }
       return null;
     }
 

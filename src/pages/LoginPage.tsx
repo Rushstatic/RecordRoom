@@ -141,11 +141,14 @@ return (
                     if (errorMessage) setErrorMessage(null);
                     clearAuthError();
                   }}
-                  placeholder="उदा. phbhada@gmail.com किंवा 9822012345"
+                  placeholder="उदा. 9730266586 किंवा phbhada@gmail.com"
                   className="w-full text-sm pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white text-slate-900 transition-all font-medium"
                   required
                 />
               </div>
+              <p className="text-[11px] text-emerald-800/80 mt-1">
+                मास्टर ॲडमिन: <strong>9730266586</strong> (गोविंद हिप्परगेकर, PHC भादा)
+              </p>
             </div>
 
             <div>
@@ -236,10 +239,10 @@ return (
                 >
                   <div className="flex items-center gap-1.5 text-emerald-800 font-bold text-xs mb-0.5">
                     <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
-                    <span>PHC नियंत्रक</span>
+                    <span>मास्टर ॲडमिन</span>
                   </div>
                   <div className="text-[11px] text-slate-500 group-hover:text-emerald-900 truncate">
-                    डॉ. अमोल पाटील (MO)
+                    गोविंद हिप्परगेकर (9730266586)
                   </div>
                 </button>
               </div>

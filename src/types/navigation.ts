@@ -123,9 +123,9 @@ export const DATA_ENTRY_SUB_ITEMS: SubNavItem[] = [
   },
   {
     id: 'template-builder',
-    labelMarathi: 'रेकॉर्ड टेम्प्लेट व्यवस्थापन',
-    labelEnglish: 'Register Builder',
-    iconName: 'Settings',
+    labelMarathi: 'डायनॅमिक रेकॉर्ड बिल्डर',
+    labelEnglish: 'Dynamic Record Builder',
+    iconName: 'Wrench',
     isControllerOnly: true,
     parentTab: 'data-entry',
   },
@@ -140,6 +140,13 @@ export const DATA_ENTRY_SUB_ITEMS: SubNavItem[] = [
 ];
 
 export const REPORTS_SUB_ITEMS: SubNavItem[] = [
+  {
+    id: 'dynamic-report',
+    labelMarathi: 'डायनॅमिक रजिस्टर अहवाल',
+    labelEnglish: 'Dynamic Register Reports',
+    iconName: 'FileSpreadsheet',
+    parentTab: 'reports',
+  },
   {
     id: 'tb-reports',
     labelMarathi: 'TB अहवाल',

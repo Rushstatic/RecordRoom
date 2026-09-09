@@ -35,12 +35,12 @@ const INITIAL_AUDIT_LOGS: SystemAuditLog[] = [
   {
     id: 'log-001',
     user_id: 'c1000000-0000-4000-8000-000000000001',
-    user_name: 'डॉ. अमोल एस. पाटील',
+    user_name: 'श्री. गोविंद हिप्परगेकर',
     role: 'phc_controller',
     action: 'LOGIN',
     module: 'Authentication',
     record_id: 'c1000000-0000-4000-8000-000000000001',
-    record_description: 'प्रा.आ.के. नियंत्रक यशस्वी लॉगिन',
+    record_description: 'मास्टर ॲडमिन (Govind Hippargekar) यशस्वी लॉगिन',
     old_values: null,
     new_values: { session: 'active', role: 'phc_controller' },
     ip_address: null,
@@ -116,7 +116,7 @@ const INITIAL_AUDIT_LOGS: SystemAuditLog[] = [
   {
     id: 'log-005',
     user_id: 'c1000000-0000-4000-8000-000000000001',
-    user_name: 'डॉ. अमोल एस. पाटील',
+    user_name: 'श्री. गोविंद हिप्परगेकर',
     role: 'phc_controller',
     action: 'UPDATE',
     module: 'Employee Master',
@@ -150,7 +150,7 @@ const INITIAL_AUDIT_LOGS: SystemAuditLog[] = [
   {
     id: 'log-007',
     user_id: 'c1000000-0000-4000-8000-000000000001',
-    user_name: 'डॉ. अमोल एस. पाटील',
+    user_name: 'श्री. गोविंद हिप्परगेकर',
     role: 'phc_controller',
     action: 'BACKUP',
     module: 'System Backup',
@@ -176,8 +176,8 @@ const INITIAL_BACKUP_HISTORY: BackupHistoryItem[] = [
     backup_date: '2026-09-05',
     backup_time: '18:00:00',
     filename: 'malaria_health_backup_2026-09-05_18-00.json',
-    created_by: 'डॉ. अमोल एस. पाटील',
-    created_by_role: 'प्रा.आ.के. नियंत्रक / वैद्यकीय अधिकारी',
+    created_by: 'श्री. गोविंद हिप्परगेकर',
+    created_by_role: 'मास्टर ॲडमिन / प्रा.आ.के. नियंत्रक',
     tables: [
       'phc_master',
       'subcentre_master',

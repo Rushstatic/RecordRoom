@@ -324,6 +324,55 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </span>
             </button>
 
+            {/* 5. Dynamic Registers Data Entry */}
+            <button
+              id="sidebar-nav-dynamic-register"
+              type="button"
+              onClick={() => handleItemClick('dynamic-register')}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs font-medium transition-all cursor-pointer ${
+                currentPage === 'dynamic-register'
+                  ? 'bg-emerald-800 text-white font-bold shadow-xs'
+                  : 'text-slate-700 hover:bg-slate-100 hover:text-emerald-900'
+              }`}
+            >
+              <div className="flex items-center gap-2 truncate">
+                <FileSpreadsheet
+                  className={`w-4 h-4 shrink-0 ${
+                    currentPage === 'dynamic-register' ? 'text-amber-400' : 'text-indigo-600'
+                  }`}
+                />
+                <span className="truncate">डिजिटल नोंदवह्या (Dynamic)</span>
+              </div>
+            </button>
+
+            {/* 6. Dynamic Record Builder (PHC Controller ONLY) */}
+            {isPhcController && (
+              <button
+                id="sidebar-nav-dynamic-record-builder"
+                type="button"
+                onClick={() => handleItemClick('template-builder')}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs font-medium transition-all cursor-pointer ${
+                  currentPage === 'template-builder' || currentPage === 'template-fields'
+                    ? 'bg-indigo-900 text-white font-bold shadow-xs'
+                    : 'text-indigo-900 bg-indigo-50/70 hover:bg-indigo-100/80 border border-indigo-200/60'
+                }`}
+              >
+                <div className="flex items-center gap-2 truncate">
+                  <FileSpreadsheet
+                    className={`w-4 h-4 shrink-0 ${
+                      currentPage === 'template-builder' || currentPage === 'template-fields'
+                        ? 'text-amber-300'
+                        : 'text-indigo-700'
+                    }`}
+                  />
+                  <span className="truncate font-semibold">Dynamic Record Builder</span>
+                </div>
+                <span className="text-[9px] bg-indigo-700 text-white font-bold px-1.5 py-0.5 rounded">
+                  Builder
+                </span>
+              </button>
+            )}
+
             {/* PHC Controller Only: Master Data & User Management */}
             {isPhcController && (
               <>
@@ -536,6 +585,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 />
                 <span className="truncate">डेटा गुणवत्ता अहवाल</span>
               </div>
+            </button>
+
+            {/* 5. Dynamic Register Reports */}
+            <button
+              id="sidebar-nav-dynamic-reports"
+              type="button"
+              onClick={() => handleItemClick('dynamic-report')}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs font-medium transition-all cursor-pointer ${
+                currentPage === 'dynamic-report'
+                  ? 'bg-teal-900 text-white font-bold shadow-xs'
+                  : 'text-teal-900 bg-teal-50/70 hover:bg-teal-100/80 border border-teal-200/60'
+              }`}
+            >
+              <div className="flex items-center gap-2 truncate">
+                <BarChart3
+                  className={`w-4 h-4 shrink-0 ${
+                    currentPage === 'dynamic-report' ? 'text-amber-300' : 'text-teal-700'
+                  }`}
+                />
+                <span className="truncate font-semibold">Dynamic Register Reports</span>
+              </div>
+              <span className="text-[9px] bg-teal-700 text-white font-bold px-1.5 py-0.5 rounded">
+                अहवाल
+              </span>
             </button>
 
             {/* 5. Activity / Audit (PHC Controller Only) */}

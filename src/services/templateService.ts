@@ -112,6 +112,79 @@ class TemplateService {
     storage.setItem(TEMPLATES_KEY, JSON.stringify(templates));
   }
 
+  async deleteTemplate(templateId: string): Promise<{ success: boolean; message: string; archived: boolean }> {
+    assertValidUUID(templateId, 'टेम्पलेट ID');
+    
+    // Check if dynamic records exist for this template
+    let recordCount = 0;
+    if (isSupabaseConfigured() && supabase) {
+      try {
+        const { count, error } = await supabase
+          .from('dynamic_record_entries')
+          .select('id', { count: 'exact', head: true })
+          .eq('template_id', templateId);
+        if (!error && typeof count === 'number') {
+          recordCount = count;
+        }
+      } catch (e) {
+        console.warn('Could not check record count in Supabase:', e);
+      }
+    } else {
+      const records = await this.getDynamicRecords(templateId);
+      recordCount = records.length;
+    }
+
+    // If records exist, DO NOT hard delete to protect clinical data integrity. Soft-archive instead.
+    if (recordCount > 0) {
+      const existing = await this.getTemplateById(templateId);
+      if (existing) {
+        await this.saveTemplate({ ...existing, is_active: false });
+      }
+      return {
+        success: true,
+        archived: true,
+        message: `या नोंदवहीत ${recordCount} नोंदी असल्याने डेटा सुरक्षिततेसाठी हे रजिस्टर हटवण्याऐवजी निष्क्रीय (Archived/Inactive) करण्यात आले आहे.`
+      };
+    }
+
+    // Hard delete when no records exist
+    if (isSupabaseConfigured() && supabase) {
+      const { error } = await supabase.from('record_register_templates').delete().eq('id', templateId);
+      if (error) {
+        console.error('Supabase delete template error:', error);
+        if (!isDemoMode()) {
+          throw new Error(`नोंदवही टेम्पलेट हटवता आले नाही: ${error.message}`);
+        }
+      }
+    }
+
+    let raw = storage.getItem(TEMPLATES_KEY);
+    let templates = raw ? JSON.parse(raw) as RecordRegisterTemplate[] : [];
+    templates = templates.filter(t => t.id !== templateId);
+    storage.setItem(TEMPLATES_KEY, JSON.stringify(templates));
+
+    return {
+      success: true,
+      archived: false,
+      message: 'नोंदवही टेम्पलेट यशस्वीरित्या डिलीट केले गेले.'
+    };
+  }
+
+  async reorderTemplates(orderedIds: string[]): Promise<void> {
+    const templates = await this.getTemplates();
+    const updated = templates.map(t => {
+      const idx = orderedIds.indexOf(t.id);
+      return idx >= 0 ? { ...t, display_order: idx + 1 } : t;
+    });
+    
+    if (isSupabaseConfigured() && supabase) {
+      for (const t of updated) {
+        await supabase.from('record_register_templates').update({ display_order: t.display_order }).eq('id', t.id);
+      }
+    }
+    storage.setItem(TEMPLATES_KEY, JSON.stringify(updated));
+  }
+
   async getTemplateFields(templateId: string): Promise<RecordTemplateField[]> {
     if (isSupabaseConfigured() && supabase && isValidUUID(templateId)) {
       try {
@@ -268,6 +341,64 @@ class TemplateService {
       records.push({ ...cleanRecord, created_at: new Date().toISOString() });
     }
     storage.setItem(DYNAMIC_RECORDS_KEY, JSON.stringify(records));
+  }
+
+  async deleteDynamicRecord(recordId: string): Promise<void> {
+    assertValidUUID(recordId, 'नोंद ID');
+    if (isSupabaseConfigured() && supabase) {
+      const { error } = await supabase.from('dynamic_record_entries').delete().eq('id', recordId);
+      if (error) {
+        console.error('Supabase delete record error:', error);
+        if (!isDemoMode()) {
+          throw new Error(`डायनॅमिक नोंद हटवता आली नाही: ${error.message}`);
+        }
+      }
+    } else if (!isDemoMode()) {
+      throw new Error('Supabase कॉन्फिगर केलेले नाही.');
+    }
+
+    let raw = storage.getItem(DYNAMIC_RECORDS_KEY);
+    let records = raw ? JSON.parse(raw) as DynamicRecordEntry[] : [];
+    records = records.filter(r => r.id !== recordId);
+    storage.setItem(DYNAMIC_RECORDS_KEY, JSON.stringify(records));
+  }
+
+  async reorderFields(templateId: string, orderedFieldIds: string[]): Promise<void> {
+    assertValidUUID(templateId, 'टेम्पलेट ID');
+    const fields = await this.getTemplateFields(templateId);
+    const updated = fields.map(f => {
+      const idx = orderedFieldIds.indexOf(f.id);
+      return idx >= 0 ? { ...f, field_order: idx + 1 } : f;
+    });
+
+    if (isSupabaseConfigured() && supabase) {
+      for (const f of updated) {
+        await supabase.from('record_template_fields').update({ field_order: f.field_order }).eq('id', f.id);
+      }
+    }
+
+    let raw = storage.getItem(TEMPLATE_FIELDS_KEY);
+    let allFields = raw ? JSON.parse(raw) as RecordTemplateField[] : [];
+    allFields = allFields.map(f => {
+      if (f.template_id === templateId) {
+        const found = updated.find(u => u.id === f.id);
+        return found || f;
+      }
+      return f;
+    });
+    storage.setItem(TEMPLATE_FIELDS_KEY, JSON.stringify(allFields));
+  }
+
+  async getRecordStats(templateId: string): Promise<{ total: number; today: number; printed: number }> {
+    const records = await this.getDynamicRecords(templateId);
+    const todayStr = new Date().toISOString().split('T')[0];
+    const today = records.filter(r => r.record_date === todayStr).length;
+    const printed = records.filter(r => r.is_printed).length;
+    return {
+      total: records.length,
+      today,
+      printed
+    };
   }
 }
 

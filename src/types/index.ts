@@ -102,6 +102,8 @@ export interface SubcentreMaster {
   phc_name?: string;
 }
 
+export type Subcentre = SubcentreMaster;
+
 export interface VillageMaster {
   id: string;
   subcentre_id: string;
@@ -113,6 +115,8 @@ export interface VillageMaster {
   subcentre_name?: string;
   phc_name?: string;
 }
+
+export type Village = VillageMaster;
 
 export interface EmployeeMaster {
   id: string;
