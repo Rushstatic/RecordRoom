@@ -3,17 +3,29 @@ import nodemailer from 'nodemailer';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
-import { fileURLToPath } from 'url';
-import { createServer as createViteServer } from 'vite';
 
 dotenv.config();
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+
+  // Determine environment:
+  // In development inside AI Studio sandbox, DEFAULT_APP_PORT is 3000 and NODE_ENV !== 'production'
+  const isDev = process.env.NODE_ENV !== 'production' && Boolean(process.env.DEFAULT_APP_PORT);
+
+  // In AI Studio sandbox, DEFAULT_APP_PORT=3000 is required by the nginx proxy layer.
+  // In deployed Cloud Run production, Cloud Run injects PORT (defaults to 8080) and sends traffic to it.
+  const PORT = process.env.DEFAULT_APP_PORT
+    ? parseInt(process.env.DEFAULT_APP_PORT, 10)
+    : (process.env.PORT ? parseInt(process.env.PORT, 10) : (isDev ? 3000 : 8080));
 
   app.use(cors());
   app.use(express.json());
+
+  // Health check endpoint for Cloud Run and container lifecycle probes
+  app.get('/api/health', (req, res) => {
+    res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
 
   // In-memory store for OTPs (in production, use a database or redis)
   const otpStore = new Map<string, { otp: string, expiresAt: number }>();
@@ -98,13 +110,20 @@ async function startServer() {
     }
   });
 
-  // Vite middleware for development
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
+  // Serve assets:
+  // In development, hook into Vite development server
+  // In production (Cloud Run), serve the compiled static files from dist/
+  if (isDev) {
+    try {
+      const { createServer: createViteServer } = await import('vite');
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: 'spa',
+      });
+      app.use(vite.middlewares);
+    } catch (viteError) {
+      console.error('Failed to start Vite dev server:', viteError);
+    }
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
@@ -113,8 +132,17 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+  const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on http://0.0.0.0:${PORT} (Mode: ${isDev ? 'development' : 'production'})`);
+  });
+
+  // Graceful termination for Cloud Run container lifecycle
+  process.on('SIGTERM', () => {
+    console.log('SIGTERM signal received: shutting down HTTP server gracefully');
+    server.close(() => {
+      console.log('HTTP server closed');
+      process.exit(0);
+    });
   });
 }
 
