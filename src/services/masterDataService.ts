@@ -791,54 +791,64 @@ export const masterDataService = {
   },
 
   // ==========================================
-  // 5. DASHBOARD METRICS FOR PHC CONTROLLER
+  // 5. DASHBOARD METRICS FOR PHC CONTROLLER / SUBCENTRE EMPLOYEE
   // ==========================================
-  async getDashboardMetrics(): Promise<DashboardMetrics> {
+  async getDashboardMetrics(scope?: {
+    phcId?: string;
+    applicableSubcentreIds?: string[];
+  }): Promise<DashboardMetrics> {
     if (isSupabaseConfigured() && supabase) {
       try {
-        const [phcRes, scRes, vilRes, empActiveRes, empInactiveRes, allEmpRes, popRes] =
-          await Promise.all([
-            supabase.from('phc_master').select('*', { count: 'exact', head: true }),
-            supabase.from('subcentre_master').select('*', { count: 'exact', head: true }),
-            supabase.from('village_master').select('*', { count: 'exact', head: true }),
-            supabase
-              .from('employee_master')
-              .select('*', { count: 'exact', head: true })
-              .eq('is_active', true),
-            supabase
-              .from('employee_master')
-              .select('*', { count: 'exact', head: true })
-              .eq('is_active', false),
-            supabase.from('employee_master').select('*', { count: 'exact', head: true }),
-            supabase.from('village_master').select('population'),
-          ]);
+        let scQuery = supabase.from('subcentre_master').select('id, phc_id');
+        let vilQuery = supabase.from('village_master').select('id, subcentre_id, population');
+        let empQuery = supabase.from('employee_master').select('id, subcentre_id, is_active');
 
-        const pop = popRes.data
-          ? popRes.data.reduce((acc, v) => acc + (Number(v.population) || 0), 0)
-          : 0;
+        if (scope?.applicableSubcentreIds && scope.applicableSubcentreIds.length > 0) {
+          scQuery = scQuery.in('id', scope.applicableSubcentreIds);
+          vilQuery = vilQuery.in('subcentre_id', scope.applicableSubcentreIds);
+          empQuery = empQuery.in('subcentre_id', scope.applicableSubcentreIds);
+        } else if (scope?.phcId) {
+          scQuery = scQuery.eq('phc_id', scope.phcId);
+        }
 
-        if (
-          phcRes.count !== null &&
-          scRes.count !== null &&
-          vilRes.count !== null &&
-          allEmpRes.count !== null
-        ) {
+        const [scRes, vilRes, empRes] = await Promise.all([
+          scQuery,
+          vilQuery,
+          empQuery,
+        ]);
+
+        if (scRes.data && vilRes.data && empRes.data) {
+          const scList = scRes.data;
+          let vilList = vilRes.data;
+          let empList = empRes.data;
+
+          // If phcId filter was applied on subcentres, also filter villages & employees by those subcentres
+          if (scope?.phcId && (!scope?.applicableSubcentreIds || scope.applicableSubcentreIds.length === 0)) {
+            const scIds = new Set(scList.map((s) => s.id));
+            vilList = vilList.filter((v) => scIds.has(v.subcentre_id));
+            empList = empList.filter((e) => scIds.has(e.subcentre_id));
+          }
+
+          const activeCount = empList.filter((e) => e.is_active).length;
+          const inactiveCount = empList.length - activeCount;
+          const pop = vilList.reduce((acc, v) => acc + (Number(v.population) || 0), 0);
+
           return {
-            totalPhcs: phcRes.count ?? 0,
-            totalSubcentres: scRes.count ?? 0,
-            totalVillages: vilRes.count ?? 0,
-            totalEmployees: allEmpRes.count ?? 0,
-            activeEmployees: empActiveRes.count ?? 0,
-            inactiveEmployees: empInactiveRes.count ?? 0,
+            totalPhcs: scope?.phcId ? 1 : 1,
+            totalSubcentres: scList.length,
+            totalVillages: vilList.length,
+            totalEmployees: empList.length,
+            activeEmployees: activeCount,
+            inactiveEmployees: inactiveCount,
             totalPopulation: pop,
           };
         }
       } catch (err) {
-        console.warn('Supabase getDashboardMetrics count error, using local fallback', err);
+        console.warn('Supabase getDashboardMetrics query error, using local fallback', err);
       }
     }
 
-    // Local / Offline fallback
+    // Local / Offline fallback with scope filtering
     const [phcs, scs, villages, employees] = await Promise.all([
       this.getPhcs(),
       this.getSubcentres(),
@@ -846,15 +856,31 @@ export const masterDataService = {
       this.getEmployees(),
     ]);
 
-    const activeCount = employees.filter((e) => e.is_active).length;
-    const inactiveCount = employees.length - activeCount;
-    const totalPop = villages.reduce((acc, v) => acc + (Number(v.population) || 0), 0);
+    let filteredScs = scs;
+    let filteredVils = villages;
+    let filteredEmps = employees;
+
+    if (scope?.applicableSubcentreIds && scope.applicableSubcentreIds.length > 0) {
+      const scIds = new Set(scope.applicableSubcentreIds);
+      filteredScs = scs.filter((s) => scIds.has(s.id));
+      filteredVils = villages.filter((v) => scIds.has(v.subcentre_id));
+      filteredEmps = employees.filter((e) => scIds.has(e.subcentre_id));
+    } else if (scope?.phcId) {
+      filteredScs = scs.filter((s) => s.phc_id === scope.phcId);
+      const scIds = new Set(filteredScs.map((s) => s.id));
+      filteredVils = villages.filter((v) => scIds.has(v.subcentre_id));
+      filteredEmps = employees.filter((e) => scIds.has(e.subcentre_id));
+    }
+
+    const activeCount = filteredEmps.filter((e) => e.is_active).length;
+    const inactiveCount = filteredEmps.length - activeCount;
+    const totalPop = filteredVils.reduce((acc, v) => acc + (Number(v.population) || 0), 0);
 
     return {
-      totalPhcs: phcs.length,
-      totalSubcentres: scs.length,
-      totalVillages: villages.length,
-      totalEmployees: employees.length,
+      totalPhcs: scope?.phcId ? 1 : phcs.length,
+      totalSubcentres: filteredScs.length,
+      totalVillages: filteredVils.length,
+      totalEmployees: filteredEmps.length,
       activeEmployees: activeCount,
       inactiveEmployees: inactiveCount,
       totalPopulation: totalPop,

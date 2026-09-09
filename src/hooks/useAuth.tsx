@@ -1,25 +1,33 @@
-import { storage } from '../lib/storage';
 import { useState, useEffect, useCallback, createContext, useContext, ReactNode } from 'react';
 import React from 'react';
-import { UserProfile, UserRole } from '../types';
+import { UserProfile, UserRole, UserProfileEntity } from '../types';
 import { authService, DEMO_USERS } from '../services/authService';
 import { userService } from '../services/userService';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { isDemoMode } from '../lib/env';
+import { currentUserService, CurrentUserContext, userContextToUserProfile } from '../services/currentUserService';
+import { storage } from '../lib/storage';
 
-interface AuthContextType {
+export interface AuthContextType {
   user: UserProfile | null;
+  userContext: CurrentUserContext | null;
+  profile: UserProfileEntity | null;
+  authUser: any | null;
+  session: any | null;
   role: UserRole | null;
   isLoggedIn: boolean;
   isLoading: boolean;
   authError: string | null;
   isPhcController: boolean;
   isSubcentreStaff: boolean;
+  applicableSubcentreIds: string[];
+  applicableVillageIds: string[];
   loginWithRole: (role: UserRole) => Promise<void>;
   loginWithEmail: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   switchRole?: (role: UserRole) => void;
   refreshUser: () => Promise<void>;
+  retryAuth: () => Promise<void>;
   updatePassword: (newPass: string) => Promise<void>;
   clearAuthError: () => void;
 }
@@ -27,148 +35,156 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<UserProfile | null>(() => {
-    return authService.getCurrentUser();
-  });
-
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
-    const hasSession = storage.getItem('arogya_is_logged_in');
-    const profile = authService.getCurrentUser();
-    return hasSession === 'true' && !!profile;
-  });
-
+  const [userContext, setUserContext] = useState<CurrentUserContext | null>(null);
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [session, setSession] = useState<any | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [authError, setAuthError] = useState<string | null>(null);
+  const isManualLogoutRef = React.useRef(false);
 
-  const role: UserRole | null = user?.role || null;
+  const role: UserRole | null = userContext?.role || user?.role || null;
   const isPhcController = role === 'phc_controller';
   const isSubcentreStaff = role === 'subcentre_employee';
+  const profile: UserProfileEntity | null = userContext?.rawProfile || null;
+  const authUser = session?.user || null;
+  const applicableSubcentreIds: string[] = userContext?.applicableSubcentreIds || [];
+  const applicableVillageIds: string[] = userContext?.applicableVillageIds || [];
 
   const clearAuthError = useCallback(() => {
     setAuthError(null);
   }, []);
 
-  const refreshUser = useCallback(async () => {
-    const currentUser = authService.getCurrentUser();
-    setUser(currentUser);
+  // Central resolution routine
+  const resolveUserContext = useCallback(async () => {
+    setIsLoading(true);
+    setAuthError(null);
+
+    try {
+      if (isSupabaseConfigured() && supabase) {
+        const { data: sessionData } = await supabase.auth.getSession();
+        setSession(sessionData?.session || null);
+
+        if (sessionData?.session?.user) {
+          const ctx = await currentUserService.getCurrentUserContext();
+          if (ctx) {
+            setUserContext(ctx);
+            const mappedUser = userContextToUserProfile(ctx);
+            setUser(mappedUser);
+            setIsLoggedIn(true);
+            setAuthError(null);
+            // Non-authoritative cache for offline fallback only
+            storage.setItem('arogya_is_logged_in', 'true');
+            storage.setItem('arogya_current_user_role', ctx.role);
+            storage.setItem('arogya_current_user_profile', JSON.stringify(mappedUser));
+            return;
+          }
+        }
+      }
+
+      // If no Supabase session or not configured, check demo mode
+      if (isDemoMode()) {
+        const localUser = authService.getCurrentUser();
+        if (localUser && storage.getItem('arogya_is_logged_in') === 'true') {
+          setUser(localUser);
+          setIsLoggedIn(true);
+          setAuthError(null);
+          return;
+        }
+      }
+
+      // No active session found
+      setUserContext(null);
+      setUser(null);
+      setIsLoggedIn(false);
+    } catch (err: any) {
+      console.error('[AuthProvider] Error resolving user context:', err);
+      setUserContext(null);
+      setUser(null);
+      setIsLoggedIn(false);
+      setAuthError(err.message || 'आपली कर्मचारी माहिती Supabase मधून मिळवता आली नाही.');
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
-  // Initialize and check Supabase Auth session & profile
+  const refreshUser = useCallback(async () => {
+    await resolveUserContext();
+  }, [resolveUserContext]);
+
+  const retryAuth = useCallback(async () => {
+    await resolveUserContext();
+  }, [resolveUserContext]);
+
+  // Initial mount: load context from Supabase
   useEffect(() => {
     let isMounted = true;
 
-    async function initAuth() {
-      setIsLoading(true);
-      setAuthError(null);
-      try {
-        if (isSupabaseConfigured() && supabase) {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session?.user) {
-            const profile = await userService.getProfileByAuthId(session.user.id);
-            if (!profile) {
-              if (isMounted) {
-                setAuthError('वापरकर्त्याची प्रोफाइल सापडली नाही. कृपया प्रशासकाशी संपर्क साधा.');
-                setIsLoggedIn(false);
-                setUser(null);
-              }
-              return;
-            }
-
-            if (!profile.is_active) {
-              await supabase.auth.signOut();
-              if (isMounted) {
-                setAuthError('आपले खाते सध्या निष्क्रिय आहे. कृपया प्रशासकाशी संपर्क साधा.');
-                setIsLoggedIn(false);
-                setUser(null);
-              }
-              return;
-            }
-
-            if (!profile.role || (profile.role !== 'phc_controller' && profile.role !== 'subcentre_employee')) {
-              await supabase.auth.signOut();
-              if (isMounted) {
-                setAuthError('वापरकर्त्याची भूमिका निश्चित करता आली नाही. कृपया प्रशासकाशी संपर्क साधा.');
-                setIsLoggedIn(false);
-                setUser(null);
-              }
-              return;
-            }
-
-            const hydrated = await userService.hydrateUserProfile(profile);
-            if (isMounted) {
-              setUser(hydrated);
-              setIsLoggedIn(true);
-              storage.setItem('arogya_is_logged_in', 'true');
-              storage.setItem('arogya_current_user_role', hydrated.role);
-              storage.setItem('arogya_current_user_profile', JSON.stringify(hydrated));
-            }
-            return;
-          }
-        }
-
-        // Local storage profile verification
-        const localUser = authService.getCurrentUser();
-        const hasLoggedInFlag = storage.getItem('arogya_is_logged_in') === 'true';
-
-        if (localUser && hasLoggedInFlag) {
-          if (!localUser.role) {
-            if (isMounted) {
-              setAuthError('वापरकर्त्याची भूमिका निश्चित करता आली नाही. कृपया प्रशासकाशी संपर्क साधा.');
-              setIsLoggedIn(false);
-              setUser(null);
-            }
-            return;
-          }
-          if (isMounted) {
-            setUser(localUser);
-            setIsLoggedIn(true);
-          }
-        } else {
-          if (isMounted) {
-            setIsLoggedIn(false);
-            setUser(null);
-          }
-        }
-      } catch (err: any) {
-        console.warn('Auth initialization error:', err);
-        if (isMounted) {
-          setAuthError(err.message || 'ऑथेंटिकेशन त्रुटी.');
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
+    async function init() {
+      await resolveUserContext();
     }
 
-    initAuth();
+    init();
 
-    // Listen to Supabase Auth state changes if configured
+    // Supabase Auth real-time event listener
     if (isSupabaseConfigured() && supabase) {
       const {
         data: { subscription },
-      } = supabase.auth.onAuthStateChange(async (event, session) => {
-        if (event === 'SIGNED_IN' && session?.user) {
-          try {
-            const profile = await userService.getProfileByAuthId(session.user.id);
-            if (profile && profile.role) {
-              const hydrated = await userService.hydrateUserProfile(profile);
-              setUser(hydrated);
-              setIsLoggedIn(true);
-              setAuthError(null);
-              storage.setItem('arogya_is_logged_in', 'true');
-            } else {
-              setAuthError('वापरकर्त्याची भूमिका निश्चित करता आली नाही. कृपया प्रशासकाशी संपर्क साधा.');
+      } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+        if (!isMounted) return;
+        setSession(newSession);
+
+        if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+          if (newSession?.user) {
+            try {
+              const ctx = await currentUserService.getCurrentUserContext();
+              if (ctx && isMounted) {
+                setUserContext(ctx);
+                const mappedUser = userContextToUserProfile(ctx);
+                setUser(mappedUser);
+                setIsLoggedIn(true);
+                setAuthError(null);
+              }
+            } catch (err: any) {
+              if (isMounted) {
+                setAuthError(err.message || 'आपली कर्मचारी माहिती Supabase मधून मिळवता आली नाही.');
+              }
             }
-          } catch (e) {
-            console.warn('Error loading auth profile on state change:', e);
+          }
+        } else if (event === 'TOKEN_REFRESHED') {
+          // Token refreshed: maintain valid context without resetting state if already authenticated
+          if (!userContext && newSession?.user) {
+            try {
+              const ctx = await currentUserService.getCurrentUserContext();
+              if (ctx && isMounted) {
+                setUserContext(ctx);
+                const mappedUser = userContextToUserProfile(ctx);
+                setUser(mappedUser);
+                setIsLoggedIn(true);
+                setAuthError(null);
+              }
+            } catch (err: any) {
+              if (isMounted) {
+                setAuthError(err.message || 'आपली कर्मचारी माहिती Supabase मधून मिळवता आली नाही.');
+              }
+            }
           }
         } else if (event === 'SIGNED_OUT') {
-          setIsLoggedIn(false);
-          setUser(null);
-          storage.setItem('arogya_is_logged_in', 'false');
-          storage.removeItem('arogya_current_user_profile');
-          storage.removeItem('arogya_current_user_role');
+          if (isMounted) {
+            const wasManual = isManualLogoutRef.current;
+            isManualLogoutRef.current = false;
+            setUserContext(null);
+            setUser(null);
+            setIsLoggedIn(false);
+            storage.removeItem('arogya_is_logged_in');
+            storage.removeItem('arogya_current_user_profile');
+            storage.removeItem('arogya_current_user_role');
+            if (!wasManual) {
+              setAuthError('आपले login session समाप्त झाले आहे. कृपया पुन्हा login करा.');
+            } else {
+              setAuthError(null);
+            }
+          }
         }
       });
 
@@ -181,30 +197,63 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         isMounted = false;
       };
     }
-  }, []);
+  }, [resolveUserContext]);
 
   const loginWithRole = useCallback(async (selectedRole: UserRole) => {
+    if (!isDemoMode()) {
+      throw new Error('डेमो भूमिका फक्त चाचणीसाठी उपलब्ध आहेत.');
+    }
     const loggedUser = await authService.loginWithRole(selectedRole);
     setUser(loggedUser);
     setIsLoggedIn(true);
     setAuthError(null);
   }, []);
 
-  const loginWithEmail = useCallback(async (email: string, pass: string) => {
-    const loggedUser = await authService.loginWithEmail(email, pass);
-    setUser(loggedUser);
-    setIsLoggedIn(true);
+  const loginWithEmail = useCallback(async (emailOrMobile: string, pass: string) => {
+    setIsLoading(true);
     setAuthError(null);
+    try {
+      await authService.loginWithEmail(emailOrMobile, pass);
+      // Immediately resolve authoritative fresh context
+      const ctx = await currentUserService.getCurrentUserContext();
+      if (ctx) {
+        setUserContext(ctx);
+        const mappedUser = userContextToUserProfile(ctx);
+        setUser(mappedUser);
+        setIsLoggedIn(true);
+        setAuthError(null);
+      } else {
+        throw new Error('आपल्या खात्याची कर्मचारी माहिती उपलब्ध नाही. कृपया PHC नियंत्रकाशी संपर्क साधा.');
+      }
+    } catch (err: any) {
+      setAuthError(err.message || 'लॉगिन अयशस्वी.');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
   const logout = useCallback(async () => {
-    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({ action: 'CLEAR_CACHE' });
+    setIsLoading(true);
+    isManualLogoutRef.current = true;
+    try {
+      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({ action: 'CLEAR_CACHE' });
+      }
+      await authService.logout();
+    } catch (e) {
+      console.warn('Logout error:', e);
+    } finally {
+      setUserContext(null);
+      setUser(null);
+      setSession(null);
+      setIsLoggedIn(false);
+      setAuthError(null);
+      storage.removeItem('arogya_is_logged_in');
+      storage.removeItem('arogya_current_user_profile');
+      storage.removeItem('arogya_current_user_role');
+      setIsLoading(false);
     }
-    await authService.logout();
-    setUser(null);
-    setIsLoggedIn(false);
-    setAuthError(null);
   }, []);
 
   const switchRole = useCallback((newRole: UserRole) => {
@@ -224,27 +273,31 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const updatePassword = useCallback(async (newPass: string) => {
     if (!user) throw new Error('वापरकर्ता लॉगिन केलेला नाही.');
     await userService.updateUserPassword(newPass, user);
-    
-    // Refresh user state to reflect changes (e.g. requirePasswordChange)
-    const updatedUser = authService.getCurrentUser();
-    if (updatedUser) setUser(updatedUser);
-  }, [user]);
+    await resolveUserContext();
+  }, [user, resolveUserContext]);
 
   return (
     <AuthContext.Provider
       value={{
         user,
+        userContext,
+        profile,
+        authUser,
+        session,
         role,
         isLoggedIn,
         isLoading,
         authError,
         isPhcController,
         isSubcentreStaff,
+        applicableSubcentreIds,
+        applicableVillageIds,
         loginWithRole,
         loginWithEmail,
         logout,
         switchRole,
         refreshUser,
+        retryAuth,
         updatePassword,
         clearAuthError,
       }}
@@ -261,4 +314,3 @@ export const useAuth = () => {
   }
   return context;
 };
-

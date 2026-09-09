@@ -182,12 +182,17 @@ export const Header: React.FC<HeaderProps> = ({
                     <UserCheck className="w-4 h-4 text-emerald-900" />
                   )}
                 </div>
-                <div className="hidden xl:block">
+                <div className="hidden lg:block text-left">
                   <div className="text-xs font-semibold text-white leading-tight flex items-center gap-1.5">
-                    <span className="truncate max-w-[130px]">{user.marathiName}</span>
+                    <span className="truncate max-w-[140px] font-bold">{user.marathiName || user.name}</span>
                   </div>
-                  <div className="text-[10px] text-amber-200 font-medium leading-none mt-0.5 truncate max-w-[130px]">
-                    {user.assignedSubcentre || user.roleTitleMarathi}
+                  <div className="text-[10px] text-amber-200 font-medium leading-none mt-0.5 truncate max-w-[140px] flex items-center gap-1">
+                    <span className="font-semibold text-amber-300">
+                      {role === 'phc_controller' ? 'PHC नियंत्रक' : 'उपकेंद्र कर्मचारी'}
+                    </span>
+                    {user.assignedSubcentre && role !== 'phc_controller' && (
+                      <span className="text-white/75 truncate">• {user.assignedSubcentre}</span>
+                    )}
                   </div>
                 </div>
               </button>

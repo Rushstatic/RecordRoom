@@ -23,6 +23,7 @@ import {
   ChevronRight,
   ShieldAlert,
   Building,
+  Terminal,
 } from 'lucide-react';
 import { PageId } from '../types';
 import { useAuth } from '../hooks/useAuth';
@@ -539,25 +540,57 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
             {/* 5. Activity / Audit (PHC Controller Only) */}
             {isPhcController && (
-              <button
-                id="sidebar-nav-backup-audit"
-                type="button"
-                onClick={() => handleItemClick('backup-audit')}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs font-medium transition-all cursor-pointer ${
-                  currentPage === 'backup-audit'
-                    ? 'bg-emerald-800 text-white font-bold shadow-xs'
-                    : 'text-slate-700 hover:bg-slate-100 hover:text-emerald-900'
-                }`}
-              >
-                <div className="flex items-center gap-2 truncate">
-                  <Database
-                    className={`w-4 h-4 shrink-0 ${
-                      currentPage === 'backup-audit' ? 'text-amber-400' : 'text-slate-500'
+              <>
+                <button
+                  id="sidebar-nav-backup-audit"
+                  type="button"
+                  onClick={() => handleItemClick('backup-audit')}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs font-medium transition-all cursor-pointer ${
+                    currentPage === 'backup-audit'
+                      ? 'bg-emerald-800 text-white font-bold shadow-xs'
+                      : 'text-slate-700 hover:bg-slate-100 hover:text-emerald-900'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 truncate">
+                    <Database
+                      className={`w-4 h-4 shrink-0 ${
+                        currentPage === 'backup-audit' ? 'text-amber-400' : 'text-slate-500'
+                      }`}
+                    />
+                    <span className="truncate">Activity / Audit Log</span>
+                  </div>
+                </button>
+
+                {/* 6. SQL Query Console (Admin Only) */}
+                <button
+                  id="sidebar-nav-sql-query"
+                  type="button"
+                  onClick={() => handleItemClick('sql-query')}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs font-medium transition-all cursor-pointer ${
+                    currentPage === 'sql-query'
+                      ? 'bg-emerald-800 text-white font-bold shadow-xs'
+                      : 'text-slate-700 hover:bg-slate-100 hover:text-emerald-900'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 truncate">
+                    <Terminal
+                      className={`w-4 h-4 shrink-0 ${
+                        currentPage === 'sql-query' ? 'text-amber-400' : 'text-indigo-600'
+                      }`}
+                    />
+                    <span className="truncate font-semibold">SQL Query Console</span>
+                  </div>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${
+                      currentPage === 'sql-query'
+                        ? 'bg-amber-400 text-slate-950'
+                        : 'bg-indigo-100 text-indigo-800'
                     }`}
-                  />
-                  <span className="truncate">Activity / Audit Log</span>
-                </div>
-              </button>
+                  >
+                    Admin
+                  </span>
+                </button>
+              </>
             )}
           </div>
         </nav>

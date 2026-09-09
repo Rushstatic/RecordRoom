@@ -77,7 +77,7 @@ const MARATHI_MONTHS = [
 ];
 
 export const MalariaReportsPage: React.FC<MalariaReportsPageProps> = ({ onNavigate }) => {
-  const { role, user } = useAuth();
+  const { role, user, applicableSubcentreIds } = useAuth();
   const { isOnline } = useNetworkStatus();
 
   // CODE 12: Offline Draft Count
@@ -140,7 +140,7 @@ export const MalariaReportsPage: React.FC<MalariaReportsPageProps> = ({ onNaviga
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [phcList, scList, vilList, empList, sampleList] = await Promise.all([
+      const [phcList, scList, vilList, empList, rawSampleList] = await Promise.all([
         masterDataService.getPhcs(),
         masterDataService.getSubcentres(),
         masterDataService.getVillages(),
@@ -148,10 +148,34 @@ export const MalariaReportsPage: React.FC<MalariaReportsPageProps> = ({ onNaviga
         malariaService.getSamples(),
       ]);
 
+      // Enforce user's authorized scope
+      let filteredScList = scList;
+      let filteredVilList = vilList;
+      let filteredEmpList = empList;
+      let sampleList = rawSampleList;
+
+      if (role === 'subcentre_employee') {
+        const allowedScSet = new Set(applicableSubcentreIds);
+        if (allowedScSet.size > 0) {
+          filteredScList = scList.filter((s) => allowedScSet.has(s.id));
+          filteredVilList = vilList.filter((v) => allowedScSet.has(v.subcentre_id));
+          filteredEmpList = empList.filter(
+            (e) => allowedScSet.has(e.subcentre_id) || e.id === user?.employeeId
+          );
+          sampleList = rawSampleList.filter(
+            (s) =>
+              (s.subcentre_id && allowedScSet.has(s.subcentre_id)) ||
+              s.employee_id === user?.employeeId
+          );
+        } else if (user?.employeeId) {
+          sampleList = rawSampleList.filter((s) => s.employee_id === user.employeeId);
+        }
+      }
+
       setPhcs(phcList);
-      setSubcentres(scList);
-      setVillages(vilList);
-      setEmployees(empList);
+      setSubcentres(filteredScList);
+      setVillages(filteredVilList);
+      setEmployees(filteredEmpList);
       setAllSamples(sampleList);
 
       // Set role-based initial filters

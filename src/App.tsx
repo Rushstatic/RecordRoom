@@ -24,6 +24,7 @@ import { UserManualPage } from './pages/UserManualPage';
 import { TBRegisterPage } from './pages/TBRegisterPage';
 import { TBReportsPage } from './pages/TBReportsPage';
 import { DataMigrationPage } from './pages/DataMigrationPage';
+import { SQLQueryPage } from './pages/SQLQueryPage';
 import { MyAccountModal } from './components/auth/MyAccountModal';
 import TemplateBuilderPage from './pages/TemplateBuilderPage';
 import TemplateFieldsPage from './pages/TemplateFieldsPage';
@@ -40,10 +41,11 @@ const PHC_ONLY_PAGES: PageId[] = [
   'user-management',
   'backup-audit',
   'data-migration',
+  'sql-query',
 ];
 
 const AppContent: React.FC = () => {
-  const { user, role, isLoggedIn, isLoading } = useAuth();
+  const { user, role, isLoggedIn, isLoading, authError, retryAuth, logout } = useAuth();
   const [currentPage, setCurrentPage] = useState<PageId>('dashboard');
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
 
@@ -53,7 +55,40 @@ const AppContent: React.FC = () => {
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white p-4">
         <div className="animate-spin rounded-full h-12 w-12 border-4 border-amber-400 border-t-transparent mb-4"></div>
         <p className="text-base font-bold text-white tracking-wide">आरोग्य उपकेंद्र रेकॉर्ड कीपिंग सिस्टीम</p>
-        <p className="text-xs text-emerald-200/80 mt-1">प्रणाली सुरू होत आहे, कृपया प्रतीक्षा करा...</p>
+        <p className="text-sm text-amber-300 font-medium mt-2 animate-pulse">आपली माहिती लोड होत आहे...</p>
+      </div>
+    );
+  }
+
+  // If there is an authentication or database profile error (e.g. inactive user, profile missing)
+  if (authError && !isLoggedIn) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-emerald-950 flex flex-col items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl p-6 sm:p-8 border border-slate-200 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center mx-auto mb-4 shadow-inner">
+            <ShieldAlert className="w-8 h-8" />
+          </div>
+          <h2 className="text-lg font-bold text-slate-900 mb-2">वापरकर्ता पडताळणी सूचना</h2>
+          <p className="text-sm text-rose-700 bg-rose-50 p-4 rounded-xl border border-rose-200 font-medium mb-6 leading-relaxed">
+            {authError}
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={() => retryAuth()}
+              className="w-full sm:w-auto bg-emerald-800 hover:bg-emerald-900 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition-all cursor-pointer shadow-md"
+            >
+              पुन्हा प्रयत्न करा
+            </button>
+            <button
+              type="button"
+              onClick={() => logout()}
+              className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-6 py-2.5 rounded-xl text-sm transition-all cursor-pointer border border-slate-300"
+            >
+              लॉगिन पृष्ठावर जा
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -134,6 +169,8 @@ const AppContent: React.FC = () => {
         return <BackupAuditPage />;
       case 'data-migration':
         return <DataMigrationPage />;
+      case 'sql-query':
+        return <SQLQueryPage onNavigate={setCurrentPage} />;
       case 'user-management':
         return <UserManagementPage onNavigate={setCurrentPage} />;
       case 'user-manual':

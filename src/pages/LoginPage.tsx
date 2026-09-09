@@ -25,7 +25,7 @@ interface LoginPageProps {
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
-  const { loginWithRole, loginWithEmail } = useAuth();
+  const { loginWithRole, loginWithEmail, authError, clearAuthError } = useAuth();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -34,9 +34,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const [forgotEmail, setForgotEmail] = useState('');
   const isSupabaseReady = isSupabaseConfigured();
 
+  const activeError = errorMessage || authError;
+
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+    clearAuthError();
 
     if (!identifier.trim()) {
       setErrorMessage('कृपया आपला नोंदणीकृत ईमेल किंवा मोबाईल नंबर प्रविष्ट करा.');
@@ -110,12 +113,12 @@ return (
 
         <div className="p-6 space-y-5">
           {/* Error Message Box */}
-          {errorMessage && (
+          {activeError && (
             <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2.5 animate-fadeIn">
               <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
               <div>
-                <p className="font-bold text-rose-900">लॉगिन अयशस्वी</p>
-                <p className="mt-0.5 leading-relaxed">{errorMessage}</p>
+                <p className="font-bold text-rose-900">सूचना / त्रुटी</p>
+                <p className="mt-0.5 leading-relaxed">{activeError}</p>
               </div>
             </div>
           )}
@@ -136,6 +139,7 @@ return (
                   onChange={(e) => {
                     setIdentifier(e.target.value);
                     if (errorMessage) setErrorMessage(null);
+                    clearAuthError();
                   }}
                   placeholder="उदा. phbhada@gmail.com किंवा 9822012345"
                   className="w-full text-sm pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white text-slate-900 transition-all font-medium"
@@ -171,6 +175,7 @@ return (
                   onChange={(e) => {
                     setPassword(e.target.value);
                     if (errorMessage) setErrorMessage(null);
+                    clearAuthError();
                   }}
                   placeholder="••••••••"
                   className="w-full text-sm pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white text-slate-900 transition-all font-medium"

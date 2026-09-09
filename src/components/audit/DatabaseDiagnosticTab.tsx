@@ -30,6 +30,8 @@ const TABLES_TO_CHECK = [
   { tableName: 'subcentre_master', marathiName: 'आरोग्य उपकेंद्र मास्टर' },
   { tableName: 'village_master', marathiName: 'गाव मास्टर' },
   { tableName: 'employee_master', marathiName: 'कर्मचारी मास्टर' },
+  { tableName: 'employee_posting_history', marathiName: 'कर्मचारी पदस्थापना इतिहास (Posting)' },
+  { tableName: 'employee_extra_charge', marathiName: 'कर्मचारी अतिरिक्त कार्यभार (Extra Charge)' },
   { tableName: 'malaria_blood_samples', marathiName: 'मलेरिया रक्त नमुना नोंद' },
   { tableName: 'user_profiles', marathiName: 'वापरकर्ता प्रोफाइल्स (RBAC)' },
   { tableName: 'tb_suspected_patient_register', marathiName: 'क्षयरोग संशयित रुग्ण नोंद' },
@@ -41,7 +43,7 @@ const TABLES_TO_CHECK = [
 ];
 
 export const DatabaseDiagnosticTab: React.FC = () => {
-  const { user, role, profile, authUser } = useAuth();
+  const { user, role, profile, authUser, session, userContext, applicableSubcentreIds, applicableVillageIds } = useAuth();
 
   const [isRunning, setIsRunning] = useState(false);
   const [tableResults, setTableResults] = useState<TableCheckResult[]>([]);
@@ -340,23 +342,69 @@ export const DatabaseDiagnosticTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Master Identifiers Card */}
-      <div className="bg-white rounded-xl border border-slate-200 p-5">
-        <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
-          <Shield className="w-4 h-4 text-indigo-600" />
-          सध्याचे लॉगिन वापरकर्ता संदर्भ (Active Session Context)
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
-          <div className="p-3 bg-slate-50 rounded-lg">
-            <span className="text-slate-500 block font-medium">वापरकर्ता नाव (User Name)</span>
-            <span className="font-semibold text-slate-800 mt-0.5 block">
-              {user?.marathiName || user?.name || '-'}
+      {/* Master Identifiers Card - CODE 24A Active User Context */}
+      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 pb-3 border-b border-slate-100">
+          <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+            <Shield className="w-4 h-4 text-indigo-600" />
+            <span>सक्रिय वापरकर्ता संदर्भ (CODE 24A Active User Context)</span>
+          </h3>
+          <div className="flex items-center gap-2">
+            <span
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                hasAuthSession ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
+              }`}
+            >
+              Session: {hasAuthSession ? 'VALID' : 'INVALID / EXPIRED'}
+            </span>
+            <span
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                supabaseConnected && userContext ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
+              }`}
+            >
+              Cross-Device Sync: {supabaseConnected && userContext ? 'PASS' : 'FAIL / LOCAL'}
             </span>
           </div>
-          <div className="p-3 bg-slate-50 rounded-lg">
-            <span className="text-slate-500 block font-medium">कर्मचारी ID (Employee ID)</span>
-            <span className="font-mono text-slate-800 mt-0.5 block truncate" title={user?.employeeId}>
-              {user?.employeeId || 'लागू नाही'}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+          {/* auth_user_id */}
+          <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+            <span className="text-slate-500 block font-medium">auth_user_id (Supabase Auth)</span>
+            <span className="font-mono text-slate-800 mt-0.5 block truncate" title={userContext?.authUserId || authUid || '-'}>
+              {userContext?.authUserId || authUid || 'लागू नाही'}
+            </span>
+          </div>
+
+          {/* user_profile_id */}
+          <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+            <span className="text-slate-500 block font-medium">user_profile_id</span>
+            <span className="font-mono text-slate-800 mt-0.5 block truncate" title={userContext?.profileId || profile?.id || '-'}>
+              {userContext?.profileId || profile?.id || 'लागू नाही'}
+            </span>
+          </div>
+
+          {/* role */}
+          <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+            <span className="text-slate-500 block font-medium">role (भूमिका)</span>
+            <span className="font-bold text-indigo-700 mt-0.5 block">
+              {role === 'phc_controller' ? 'PHC Controller (नियंत्रक)' : 'Subcentre Employee (उपकेंद्र कर्मचारी)'}
+            </span>
+          </div>
+
+          {/* employee_name */}
+          <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+            <span className="text-slate-500 block font-medium">employee_name</span>
+            <span className="font-semibold text-slate-800 mt-0.5 block">
+              {userContext?.employeeName || user?.marathiName || user?.name || '-'}
+            </span>
+          </div>
+
+          {/* employee_id */}
+          <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+            <span className="text-slate-500 block font-medium">employee_id</span>
+            <span className="font-mono text-slate-800 mt-0.5 block truncate" title={userContext?.employeeId || user?.employeeId || '-'}>
+              {userContext?.employeeId || user?.employeeId || 'लागू नाही'}
             </span>
             {user?.employeeId && (
               <span className={`text-[10px] font-medium ${isValidUUID(user.employeeId) ? 'text-emerald-600' : 'text-rose-600'}`}>
@@ -364,27 +412,69 @@ export const DatabaseDiagnosticTab: React.FC = () => {
               </span>
             )}
           </div>
-          <div className="p-3 bg-slate-50 rounded-lg">
-            <span className="text-slate-500 block font-medium">प्रा.आ.के. ID (PHC ID)</span>
-            <span className="font-mono text-slate-800 mt-0.5 block truncate" title={user?.phcId}>
-              {user?.phcId || 'लागू नाही'}
+
+          {/* smear_code */}
+          <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+            <span className="text-slate-500 block font-medium">smear_code (मलेरिया स्मीअर कोड)</span>
+            <span className="font-mono font-bold text-amber-700 mt-0.5 block">
+              {userContext?.smearCode || user?.smearCode || 'लागू नाही'}
             </span>
-            {user?.phcId && (
-              <span className={`text-[10px] font-medium ${isValidUUID(user.phcId) ? 'text-emerald-600' : 'text-rose-600'}`}>
-                {isValidUUID(user.phcId) ? '✓ Valid UUID' : '⚠ Invalid UUID'}
-              </span>
-            )}
           </div>
-          <div className="p-3 bg-slate-50 rounded-lg">
-            <span className="text-slate-500 block font-medium">उपकेंद्र ID (Subcentre ID)</span>
-            <span className="font-mono text-slate-800 mt-0.5 block truncate" title={user?.subcentreId}>
-              {user?.subcentreId || 'लागू नाही'}
+
+          {/* primary_subcentre */}
+          <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+            <span className="text-slate-500 block font-medium">primary_subcentre (प्राथमिक उपकेंद्र)</span>
+            <span className="font-medium text-slate-800 mt-0.5 block truncate">
+              {userContext?.subcentreName || user?.assignedSubcentre || 'सर्व उपकेंद्रे (PHC)'}
             </span>
-            {user?.subcentreId && (
-              <span className={`text-[10px] font-medium ${isValidUUID(user.subcentreId) ? 'text-emerald-600' : 'text-rose-600'}`}>
-                {isValidUUID(user.subcentreId) ? '✓ Valid UUID' : '⚠ Invalid UUID'}
-              </span>
-            )}
+            <span className="font-mono text-[10px] text-slate-400 block truncate">
+              {userContext?.subcentreId || user?.subcentreId || '-'}
+            </span>
+          </div>
+
+          {/* extra_charge_subcentres */}
+          <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+            <span className="text-slate-500 block font-medium">extra_charge_subcentres (अतिरिक्त कार्यभार)</span>
+            <span className="font-medium text-slate-800 mt-0.5 block">
+              {userContext?.extraCharges && userContext.extraCharges.length > 0
+                ? userContext.extraCharges.map((c) => c.subcentreName || c.subcentreId).join(', ')
+                : 'नाही'}
+            </span>
+          </div>
+
+          {/* applicable_subcentres_count */}
+          <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+            <span className="text-slate-500 block font-medium">applicable_subcentres_count</span>
+            <span className="font-bold text-emerald-700 mt-0.5 block text-sm">
+              {applicableSubcentreIds.length} उपकेंद्रे
+            </span>
+          </div>
+
+          {/* applicable_villages_count */}
+          <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+            <span className="text-slate-500 block font-medium">applicable_villages_count</span>
+            <span className="font-bold text-emerald-700 mt-0.5 block text-sm">
+              {applicableVillageIds.length} गावे
+            </span>
+          </div>
+
+          {/* is_active */}
+          <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+            <span className="text-slate-500 block font-medium">is_active (सक्रिय स्थिती)</span>
+            <span className="font-bold text-emerald-700 mt-0.5 block">
+              {userContext?.isActive ?? user?.isActive ? '✓ सक्रिय (ACTIVE)' : '✗ निष्क्रिय (INACTIVE)'}
+            </span>
+          </div>
+
+          {/* assigned PHC */}
+          <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+            <span className="text-slate-500 block font-medium">प्राथमिक आरोग्य केंद्र (PHC)</span>
+            <span className="font-medium text-slate-800 mt-0.5 block truncate">
+              {userContext?.phcName || user?.assignedPhc || '-'}
+            </span>
+            <span className="font-mono text-[10px] text-slate-400 block truncate">
+              {userContext?.phcId || user?.phcId || '-'}
+            </span>
           </div>
         </div>
       </div>

@@ -48,7 +48,7 @@ interface DashboardPageProps {
 }
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
-  const { user, role } = useAuth();
+  const { user, role, applicableSubcentreIds } = useAuth();
   const isPhcController = role === 'phc_controller';
 
   const [loading, setLoading] = useState(true);
@@ -80,8 +80,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   const loadAllDashboardData = async () => {
     setLoading(true);
     try {
-      // 1. Master metrics
-      const mData = await masterDataService.getDashboardMetrics();
+      // 1. Master metrics scoped to user's authorized scope
+      const scope = !isPhcController && applicableSubcentreIds.length > 0
+        ? { applicableSubcentreIds }
+        : user?.phcId
+        ? { phcId: user.phcId }
+        : undefined;
+      const mData = await masterDataService.getDashboardMetrics(scope);
       setMetrics(mData);
 
       // 2. Fetch blood samples

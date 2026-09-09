@@ -67,7 +67,8 @@ export type PageId =
   | 'tb-register'
   | 'tb-reports'
   | 'data-migration'
-  | 'dynamic-report';
+  | 'dynamic-report'
+  | 'sql-query';
 
 export interface NavItem {
   id: PageId;
@@ -416,7 +417,9 @@ export type AuditAction =
   | 'DYNAMIC_RECORD_UPDATE'
   | 'DYNAMIC_RECORD_DELETE'
   | 'DYNAMIC_RECORD_EXPORT'
-  | 'DYNAMIC_RECORD_PRINT';
+  | 'DYNAMIC_RECORD_PRINT'
+  | 'SQL_QUERY_EXECUTED'
+  | 'SQL_QUERY_FAILED';
 
 export type AuditModule =
   | 'PHC Master'
@@ -434,7 +437,8 @@ export type AuditModule =
   | 'User Management'
   | 'Daily Work'
   | 'TB Register'
-  | 'TB Reports';
+  | 'TB Reports'
+  | 'SQL Diagnostic Console';
 
 export interface SystemAuditLog {
   id: string;

@@ -64,6 +64,8 @@ const ACTION_BADGES: Record<AuditAction, { bg: string; text: string; border: str
   DYNAMIC_RECORD_DELETE: { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200' },
   DYNAMIC_RECORD_EXPORT: { bg: 'bg-cyan-50', text: 'text-cyan-700', border: 'border-cyan-200' },
   DYNAMIC_RECORD_PRINT: { bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200' },
+  SQL_QUERY_EXECUTED: { bg: 'bg-indigo-50', text: 'text-indigo-800', border: 'border-indigo-200' },
+  SQL_QUERY_FAILED: { bg: 'bg-rose-50', text: 'text-rose-800', border: 'border-rose-200' },
 };
 
 const MODULE_LIST: AuditModule[] = [
@@ -80,6 +82,7 @@ const MODULE_LIST: AuditModule[] = [
   'Target Management',
   'Data Quality',
   'System Backup',
+  'SQL Diagnostic Console',
 ];
 
 const ACTION_LIST: AuditAction[] = [
