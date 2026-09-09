@@ -146,9 +146,14 @@ return (
                   required
                 />
               </div>
-              <p className="text-[11px] text-emerald-800/80 mt-1">
-                मास्टर ॲडमिन: <strong>9730266586</strong> (गोविंद हिप्परगेकर, PHC भादा)
-              </p>
+              <div className="flex flex-col gap-0.5 text-[11px] text-slate-500 mt-1">
+                <span>
+                  मास्टर ॲडमिन: <strong className="text-emerald-800">9730266586</strong> (श्री. गोविंद हिप्परगेकर)
+                </span>
+                <span>
+                  उपकेंद्र कर्मचारी: कर्मचारी मास्टरमधील मोबाईल किंवा ईमेल (डिफॉल्ट पासवर्ड: <strong className="text-slate-700">123456</strong>)
+                </span>
+              </div>
             </div>
 
             <div>

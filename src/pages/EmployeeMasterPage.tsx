@@ -274,12 +274,15 @@ export const EmployeeMasterPage: React.FC = () => {
           malaria_smear_code: cleanCode,
           is_active: formIsActive,
         });
-        setSuccessMsg(`नवीन कर्मचारी "${cleanName}" यांची नोंदणी यशस्वी झाली.`);
+        const savedMobile = formMobileNumber.trim();
+        setSuccessMsg(
+          `नवीन कर्मचारी "${cleanName}" यांची नोंदणी यशस्वी झाली! हे कर्मचारी त्यांच्या मोबाईल क्रमांकाने (${savedMobile || 'नोंदवलेला मोबाईल'}) लगेच लॉगिन करू शकतात (डिफॉल्ट पासवर्ड: 123456).`
+        );
       }
 
       setShowModal(false);
       await loadData();
-      setTimeout(() => setSuccessMsg(''), 4000);
+      setTimeout(() => setSuccessMsg(''), 6000);
     } catch (err: any) {
       setErrorMsg(err.message || 'नोंदणी करताना त्रुटी आली, कृपया पुन्हा प्रयत्न करा.');
     }
@@ -899,19 +902,41 @@ export const EmployeeMasterPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Mobile Number */}
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">
-                  मोबाईल क्रमांक (Mobile Number)
-                </label>
-                <input
-                  type="tel"
-                  maxLength={10}
-                  value={formMobileNumber}
-                  onChange={(e) => setFormMobileNumber(e.target.value.replace(/\D/g, ''))}
-                  placeholder="उदा. 9822012345"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg font-mono focus:ring-2 focus:ring-emerald-600 focus:outline-none"
-                />
+              {/* Mobile Number & Email (Login Credentials) */}
+              <div className="bg-emerald-50/40 p-3 rounded-xl border border-emerald-200/80 space-y-3">
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1 flex items-center justify-between">
+                    <span>मोबाईल क्रमांक (Mobile Number)</span>
+                    <span className="text-[10px] text-emerald-800 font-bold bg-emerald-100 px-1.5 py-0.5 rounded">
+                      लॉगिन आयडी म्हणून वापरता येईल
+                    </span>
+                  </label>
+                  <input
+                    type="tel"
+                    maxLength={10}
+                    value={formMobileNumber}
+                    onChange={(e) => setFormMobileNumber(e.target.value.replace(/\D/g, ''))}
+                    placeholder="उदा. 9822012345"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg font-mono focus:ring-2 focus:ring-emerald-600 focus:outline-none bg-white text-slate-900"
+                  />
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    * कर्मचारी या मोबाईल क्रमांकाद्वारे लॉगिन करू शकतील (डिफॉल्ट पासवर्ड: <strong>123456</strong>)
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1 flex items-center justify-between">
+                    <span>ईमेल पत्ता (Email - पर्यायी)</span>
+                    <span className="text-[10px] text-slate-500 font-normal">Optional</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={formEmail}
+                    onChange={(e) => setFormEmail(e.target.value)}
+                    placeholder="उदा. anm.shivali@arogya.gov.in"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:outline-none bg-white text-slate-900"
+                  />
+                </div>
               </div>
 
               {/* Malaria Smear Code (Required, Unique, Real-time checked) */}

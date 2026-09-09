@@ -3,6 +3,8 @@ import { isDemoMode } from '../lib/env';
 import { UserRole, AppUserRole, UserProfile, UserProfileEntity, EmployeeMaster } from '../types';
 import { DEMO_USERS } from './authService';
 import { storage } from '../lib/storage';
+import { masterDataService } from './masterDataService';
+import { userService } from './userService';
 
 export interface CurrentUserContext {
   authUserId: string;
@@ -127,7 +129,18 @@ export const currentUserService = {
         if (storedProfile && storage.getItem('arogya_is_logged_in') === 'true') {
           const parsed = JSON.parse(storedProfile);
           if (parsed && parsed.role) {
-            return mapUserProfileToContext(parsed);
+            const ctx = mapUserProfileToContext(parsed);
+            if (ctx.subcentreId && (!ctx.applicableVillageIds || ctx.applicableVillageIds.length === 0)) {
+              try {
+                const villages = await masterDataService.getVillages();
+                ctx.applicableVillageIds = villages
+                  .filter((v) => v.subcentre_id === ctx.subcentreId)
+                  .map((v) => v.id);
+              } catch (ve) {
+                console.warn('Village mapping error:', ve);
+              }
+            }
+            return ctx;
           }
         }
       } catch (e) {
@@ -178,6 +191,27 @@ export const currentUserService = {
             console.warn('[currentUserService] Failed to update auth_user_id link:', e);
           }
         }
+      }
+    }
+
+    // If still not found, check employee_master in Supabase and provision profile
+    if (!profileRow && (sessionUser.email || sessionUser.phone)) {
+      try {
+        let empQuery = supabase!.from('employee_master').select('*');
+        if (sessionUser.email) {
+          empQuery = empQuery.ilike('email', sessionUser.email.trim());
+        } else if (sessionUser.phone) {
+          const cleanPhone = sessionUser.phone.replace(/\D/g, '');
+          empQuery = empQuery.or(
+            `mobile_number.eq.${cleanPhone},mobile_number.eq.${sessionUser.phone}`
+          );
+        }
+        const { data: empMatch } = await empQuery.limit(1).maybeSingle();
+        if (empMatch) {
+          profileRow = await userService.provisionProfileForEmployee(empMatch, authUserId);
+        }
+      } catch (err) {
+        console.warn('[currentUserService] Failed to auto-provision profile from employee_master:', err);
       }
     }
 

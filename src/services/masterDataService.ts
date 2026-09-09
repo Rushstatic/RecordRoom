@@ -675,6 +675,10 @@ export const masterDataService = {
         const list = getLocal<EmployeeMaster>(KEYS.EMPLOYEE, DEFAULT_EMPLOYEES);
         list.push(data);
         setLocal(KEYS.EMPLOYEE, list);
+        // Auto-provision corresponding user_profiles row in Supabase and local cache
+        this.syncUserProfileForEmployee(data).catch((err) =>
+          console.warn('[masterDataService.createEmployee] User profile sync warning:', err)
+        );
         return data;
       }
     }
@@ -690,7 +694,97 @@ export const masterDataService = {
     };
     list.push(newEmp);
     setLocal(KEYS.EMPLOYEE, list);
+    this.syncUserProfileForEmployee(newEmp).catch(() => {});
     return newEmp;
+  },
+
+  /**
+   * Automatically creates or updates the corresponding user_profiles row
+   * so new employees can login immediately via mobile or email.
+   */
+  async syncUserProfileForEmployee(employee: EmployeeMaster): Promise<void> {
+    try {
+      const subcentres = await this.getSubcentres();
+      const sc = subcentres.find((s) => s.id === employee.subcentre_id);
+      const designation = (employee.designation || '').toLowerCase();
+      const isCtrl =
+        designation.includes('वैद्यकीय अधिकारी') ||
+        designation.includes('नियंत्रक') ||
+        designation.includes('medical officer') ||
+        designation.includes('controller');
+      const cleanSmear = (employee.malaria_smear_code || 'emp')
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '');
+      const cleanPhone = (employee.mobile_number || '').replace(/\D/g, '');
+      const autoEmail =
+        employee.email && employee.email.includes('@')
+          ? employee.email.toLowerCase().trim()
+          : `${cleanSmear || cleanPhone || 'employee'}@arogya.gov.in`;
+
+      const now = new Date().toISOString();
+      const profileRow = {
+        id: generateUUID(),
+        auth_user_id: generateUUID(),
+        employee_id: employee.id,
+        role: isCtrl ? 'PHC_CONTROLLER' : 'SUBCENTRE_EMPLOYEE',
+        phc_id: sc ? sc.phc_id : null,
+        subcentre_id: employee.subcentre_id,
+        is_active: employee.is_active ?? true,
+        email: autoEmail,
+        mobile: employee.mobile_number || null,
+        display_name: employee.employee_name,
+        last_login_at: null,
+        created_at: now,
+        updated_at: now,
+      };
+
+      if (isSupabaseConfigured() && supabase) {
+        // Upsert by employee_id if exists
+        const { data: existing } = await supabase
+          .from('user_profiles')
+          .select('id')
+          .eq('employee_id', employee.id)
+          .maybeSingle();
+
+        if (existing) {
+          await supabase
+            .from('user_profiles')
+            .update({
+              display_name: employee.employee_name,
+              mobile: employee.mobile_number || null,
+              email: autoEmail,
+              subcentre_id: employee.subcentre_id,
+              phc_id: sc ? sc.phc_id : null,
+              is_active: employee.is_active ?? true,
+              updated_at: now,
+            })
+            .eq('id', existing.id);
+        } else {
+          await supabase.from('user_profiles').insert([profileRow]);
+        }
+      }
+
+      // Update local storage
+      const cached = getLocal<any>('arogya_user_profiles_master', []);
+      const existingIdx = cached.findIndex((p: any) => p.employee_id === employee.id);
+      if (existingIdx >= 0) {
+        cached[existingIdx] = {
+          ...cached[existingIdx],
+          display_name: employee.employee_name,
+          mobile: employee.mobile_number || null,
+          email: autoEmail,
+          subcentre_id: employee.subcentre_id,
+          phc_id: sc ? sc.phc_id : null,
+          is_active: employee.is_active ?? true,
+          updated_at: now,
+        };
+      } else {
+        cached.unshift(profileRow);
+      }
+      setLocal('arogya_user_profiles_master', cached);
+    } catch (e) {
+      console.warn('[syncUserProfileForEmployee] Exception:', e);
+    }
   },
 
   async updateEmployee(id: string, payload: Partial<EmployeeMaster>): Promise<EmployeeMaster> {
@@ -733,6 +827,7 @@ export const masterDataService = {
         const idx = list.findIndex((i) => i.id === id);
         if (idx >= 0) list[idx] = { ...list[idx], ...data };
         setLocal(KEYS.EMPLOYEE, list);
+        this.syncUserProfileForEmployee(data).catch(() => {});
         return data;
       }
     }

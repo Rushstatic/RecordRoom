@@ -163,7 +163,137 @@ export const userService = {
   },
 
   /**
-   * Find profile by Email or Mobile (supports raw, +91, with spaces/dashes)
+   * Auto-provisions or retrieves a UserProfileEntity for an EmployeeMaster record.
+   * Ensures newly created employees in employee_master can login immediately.
+   */
+  async provisionProfileForEmployee(
+    employee: any,
+    authUserId?: string
+  ): Promise<UserProfileEntity> {
+    const cleanEmpId = employee.id;
+
+    // 1. Check if user_profile exists in Supabase
+    if (isSupabaseConfigured() && supabase) {
+      try {
+        const { data: existing, error } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('employee_id', cleanEmpId)
+          .maybeSingle();
+
+        if (!error && existing) {
+          if (authUserId && existing.auth_user_id !== authUserId) {
+            await supabase
+              .from('user_profiles')
+              .update({ auth_user_id: authUserId, updated_at: new Date().toISOString() })
+              .eq('id', existing.id);
+            existing.auth_user_id = authUserId;
+          }
+          return existing as UserProfileEntity;
+        }
+      } catch (err) {
+        console.warn('Error checking existing user_profile for employee:', err);
+      }
+    }
+
+    // 2. Check local profiles
+    const saved = storage.getItem(STORAGE_KEY);
+    let cachedList: UserProfileEntity[] = [];
+    if (saved) {
+      try {
+        cachedList = JSON.parse(saved);
+        const existingLocal = cachedList.find((p) => p.employee_id === cleanEmpId);
+        if (existingLocal) {
+          return existingLocal;
+        }
+      } catch {}
+    }
+
+    // 3. Resolve subcentre and PHC
+    let scPhcId: string | null = null;
+    try {
+      const subcentres = await masterDataService.getSubcentres();
+      const sc = subcentres.find((s) => s.id === employee.subcentre_id);
+      if (sc) {
+        scPhcId = sc.phc_id;
+      }
+    } catch (e) {
+      console.warn('Subcentre lookup error in provisionProfileForEmployee:', e);
+    }
+
+    const designation = (employee.designation || '').toLowerCase();
+    const isController =
+      designation.includes('वैद्यकीय अधिकारी') ||
+      designation.includes('नियंत्रक') ||
+      designation.includes('medical officer') ||
+      designation.includes('controller');
+
+    const cleanSmear = (employee.malaria_smear_code || 'emp')
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '');
+    const cleanPhone = (employee.mobile_number || '').replace(/\D/g, '');
+    const autoEmail =
+      employee.email && employee.email.includes('@')
+        ? employee.email.toLowerCase().trim()
+        : `${cleanSmear || cleanPhone || 'employee'}@arogya.gov.in`;
+
+    const now = new Date().toISOString();
+    let profileToInsert: UserProfileEntity = {
+      id: generateUuid(),
+      auth_user_id: authUserId || generateUuid(),
+      role: isController ? AppUserRole.PHC_CONTROLLER : AppUserRole.SUBCENTRE_EMPLOYEE,
+      email: autoEmail,
+      mobile: employee.mobile_number || undefined,
+      display_name: employee.employee_name,
+      employee_id: employee.id,
+      phc_id: scPhcId,
+      subcentre_id: employee.subcentre_id,
+      is_active: employee.is_active ?? true,
+      last_login_at: null,
+      created_at: now,
+      updated_at: now,
+    };
+
+    if (isSupabaseConfigured() && supabase) {
+      try {
+        const { data: inserted, error } = await supabase
+          .from('user_profiles')
+          .insert([profileToInsert])
+          .select()
+          .maybeSingle();
+
+        if (!error && inserted) {
+          profileToInsert = inserted as UserProfileEntity;
+        } else if (error) {
+          console.warn('[provisionProfileForEmployee] Insert error, checking conflict:', error);
+          const { data: fallback } = await supabase
+            .from('user_profiles')
+            .select('*')
+            .or(`employee_id.eq.${employee.id},email.eq.${profileToInsert.email}`)
+            .maybeSingle();
+          if (fallback) {
+            profileToInsert = fallback as UserProfileEntity;
+          }
+        }
+      } catch (err) {
+        console.warn('Supabase auto-provision error:', err);
+      }
+    }
+
+    // Update local cache
+    cachedList = [
+      profileToInsert,
+      ...cachedList.filter((p) => p.id !== profileToInsert.id && p.employee_id !== employee.id),
+    ];
+    storage.setItem(STORAGE_KEY, JSON.stringify(cachedList));
+
+    return profileToInsert;
+  },
+
+  /**
+   * Find profile by Email or Mobile (supports raw, +91, with spaces/dashes).
+   * Searches user_profiles AND employee_master (in both Supabase and local cache)
+   * so newly added employees in employee_master can login immediately.
    */
   async getProfileByEmailOrMobile(identifier: string): Promise<UserProfileEntity | null> {
     const rawId = identifier.trim();
@@ -178,17 +308,20 @@ export const userService = {
         ? numericOnly.slice(1)
         : numericOnly;
 
+    // 1. Query user_profiles table in Supabase
     if (isSupabaseConfigured() && supabase) {
       try {
         let query = supabase.from('user_profiles').select('*');
         if (cleanId.includes('@')) {
           query = query.ilike('email', cleanId);
         } else if (standardMobile) {
-          query = query.or(`mobile.eq.${standardMobile},mobile.eq.${rawId},mobile.eq.+91${standardMobile}`);
+          query = query.or(
+            `mobile.eq.${standardMobile},mobile.eq.${rawId},mobile.eq.+91${standardMobile},mobile.ilike.%${standardMobile}%`
+          );
         } else {
-          query = query.eq('mobile', rawId);
+          query = query.or(`mobile.eq.${rawId},email.ilike.${cleanId}`);
         }
-        const { data, error } = await query.maybeSingle();
+        const { data, error } = await query.limit(1).maybeSingle();
         if (!error && data) {
           return data as UserProfileEntity;
         }
@@ -197,17 +330,78 @@ export const userService = {
       }
     }
 
+    // 2. Query employee_master table in Supabase directly
+    // This immediately resolves any new employee saved in Supabase employee_master!
+    if (isSupabaseConfigured() && supabase) {
+      try {
+        let empQuery = supabase.from('employee_master').select('*');
+        if (cleanId.includes('@')) {
+          empQuery = empQuery.ilike('email', cleanId);
+        } else if (standardMobile) {
+          empQuery = empQuery.or(
+            `mobile_number.eq.${standardMobile},mobile_number.eq.${rawId},mobile_number.eq.+91${standardMobile},mobile_number.eq.0${standardMobile},mobile_number.ilike.%${standardMobile}%`
+          );
+        } else {
+          empQuery = empQuery.or(`mobile_number.eq.${rawId},email.ilike.${cleanId}`);
+        }
+        const { data: empData, error: empErr } = await empQuery.limit(1).maybeSingle();
+        if (!empErr && empData) {
+          return await this.provisionProfileForEmployee(empData);
+        }
+      } catch (err) {
+        console.warn('Error querying employee_master in Supabase by email/mobile:', err);
+      }
+    }
+
+    // 3. Check local user_profiles cache
     const profiles = await this.getUserProfiles();
-    return (
-      profiles.find(
-        (p) =>
-          (p.email && p.email.toLowerCase() === cleanId) ||
-          (p.mobile &&
-            (p.mobile === rawId ||
-              p.mobile === cleanId ||
-              (standardMobile && p.mobile.replace(/\D/g, '') === standardMobile)))
-      ) || null
-    );
+    const matchedLocalProfile = profiles.find((p) => {
+      if (p.email && p.email.toLowerCase() === cleanId) return true;
+      if (p.mobile) {
+        const pClean = p.mobile.replace(/\D/g, '');
+        const pStd =
+          pClean.length === 12 && pClean.startsWith('91')
+            ? pClean.slice(2)
+            : pClean.length === 11 && pClean.startsWith('0')
+            ? pClean.slice(1)
+            : pClean;
+        if (p.mobile === rawId || p.mobile === cleanId) return true;
+        if (standardMobile && (pClean === standardMobile || pStd === standardMobile)) return true;
+      }
+      return false;
+    });
+
+    if (matchedLocalProfile) {
+      return matchedLocalProfile;
+    }
+
+    // 4. Check local employee_master cache via masterDataService
+    try {
+      const employees = await masterDataService.getEmployees();
+      const matchedEmp = employees.find((e) => {
+        if (cleanId.includes('@') && e.email && e.email.trim().toLowerCase() === cleanId) return true;
+        if (e.mobile_number) {
+          const mClean = e.mobile_number.replace(/\D/g, '');
+          const mStd =
+            mClean.length === 12 && mClean.startsWith('91')
+              ? mClean.slice(2)
+              : mClean.length === 11 && mClean.startsWith('0')
+              ? mClean.slice(1)
+              : mClean;
+          if (e.mobile_number.trim() === rawId || e.mobile_number.trim() === cleanId) return true;
+          if (standardMobile && (mClean === standardMobile || mStd === standardMobile)) return true;
+        }
+        return false;
+      });
+
+      if (matchedEmp) {
+        return await this.provisionProfileForEmployee(matchedEmp);
+      }
+    } catch (err) {
+      console.warn('Error checking masterDataService.getEmployees for login:', err);
+    }
+
+    return null;
   },
 
   /**
