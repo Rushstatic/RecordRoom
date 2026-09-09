@@ -167,14 +167,16 @@ export const currentUserService = {
     if (!profileRow) {
       const email = sessionUser.email;
       const phone = sessionUser.phone;
-      if (email || phone) {
+      const cleanPhone = phone ? phone.replace(/\D/g, '').slice(-10) : '';
+
+      if (email || cleanPhone) {
         let query = supabase!.from('user_profiles').select('*');
-        if (email && phone) {
-          query = query.or(`email.ilike.${email.trim().toLowerCase()},mobile.eq.${phone.trim()}`);
+        if (email && cleanPhone) {
+          query = query.or(`email.ilike.${email.trim().toLowerCase()},mobile.eq.${cleanPhone},mobile.eq.+91${cleanPhone},mobile.eq.${phone?.trim()}`);
         } else if (email) {
-          query = query.eq('email', email.trim().toLowerCase());
-        } else if (phone) {
-          query = query.eq('mobile', phone.trim());
+          query = query.ilike('email', email.trim().toLowerCase());
+        } else if (cleanPhone) {
+          query = query.or(`mobile.eq.${cleanPhone},mobile.eq.+91${cleanPhone},mobile.eq.${phone?.trim()}`);
         }
 
         const { data: matchedRows } = await query.limit(1);
@@ -188,7 +190,7 @@ export const currentUserService = {
               .eq('id', profileRow.id);
             profileRow.auth_user_id = authUserId;
           } catch (e) {
-            console.warn('[currentUserService] Failed to update auth_user_id link:', e);
+            console.warn('[currentUserService] Failed to update auth_user_id link in DB:', e);
           }
         }
       }
@@ -197,13 +199,17 @@ export const currentUserService = {
     // If still not found, check employee_master in Supabase and provision profile
     if (!profileRow && (sessionUser.email || sessionUser.phone)) {
       try {
+        const cleanEmpPhone = sessionUser.phone ? sessionUser.phone.replace(/\D/g, '').slice(-10) : '';
         let empQuery = supabase!.from('employee_master').select('*');
-        if (sessionUser.email) {
-          empQuery = empQuery.ilike('email', sessionUser.email.trim());
-        } else if (sessionUser.phone) {
-          const cleanPhone = sessionUser.phone.replace(/\D/g, '');
+        if (sessionUser.email && cleanEmpPhone) {
           empQuery = empQuery.or(
-            `mobile_number.eq.${cleanPhone},mobile_number.eq.${sessionUser.phone}`
+            `email.ilike.${sessionUser.email.trim()},mobile_number.eq.${cleanEmpPhone},mobile_number.eq.+91${cleanEmpPhone},mobile_number.eq.${sessionUser.phone}`
+          );
+        } else if (sessionUser.email) {
+          empQuery = empQuery.ilike('email', sessionUser.email.trim());
+        } else if (cleanEmpPhone) {
+          empQuery = empQuery.or(
+            `mobile_number.eq.${cleanEmpPhone},mobile_number.eq.+91${cleanEmpPhone},mobile_number.eq.${sessionUser.phone}`
           );
         }
         const { data: empMatch } = await empQuery.limit(1).maybeSingle();
@@ -335,7 +341,33 @@ export const currentUserService = {
     }
 
     // 7. Handle Subcentre Employee
-    // Verify employee_id presence
+    // Verify employee_id presence - if missing, attempt fallback match from employee_master
+    if (!rawProfile.employee_id) {
+      console.warn('[currentUserService] rawProfile.employee_id is missing. Attempting fallback match from employee_master...');
+      try {
+        let fallbackEmpQuery = supabase!.from('employee_master').select('*');
+        const cleanEmpPhone = rawProfile.mobile ? rawProfile.mobile.replace(/\D/g, '').slice(-10) : null;
+        if (rawProfile.email && cleanEmpPhone) {
+          fallbackEmpQuery = fallbackEmpQuery.or(`email.ilike.${rawProfile.email.trim().toLowerCase()},mobile_number.eq.${cleanEmpPhone},mobile_number.eq.+91${cleanEmpPhone}`);
+        } else if (rawProfile.email) {
+          fallbackEmpQuery = fallbackEmpQuery.ilike('email', rawProfile.email.trim().toLowerCase());
+        } else if (cleanEmpPhone) {
+          fallbackEmpQuery = fallbackEmpQuery.or(`mobile_number.eq.${cleanEmpPhone},mobile_number.eq.+91${cleanEmpPhone}`);
+        }
+        const { data: matchedEmp } = await fallbackEmpQuery.limit(1).maybeSingle();
+        if (matchedEmp) {
+          rawProfile.employee_id = matchedEmp.id;
+          try {
+            await supabase!.from('user_profiles').update({ employee_id: matchedEmp.id }).eq('id', rawProfile.id);
+          } catch (updateErr) {
+            console.warn('[currentUserService] Failed to persist linked employee_id:', updateErr);
+          }
+        }
+      } catch (findErr) {
+        console.warn('[currentUserService] Failed to auto-match employee_master by profile credentials:', findErr);
+      }
+    }
+
     if (!rawProfile.employee_id) {
       throw new Error(
         'आपल्या खात्याशी जोडलेली कर्मचारी नोंद (Employee Record) सापडली नाही. कृपया PHC नियंत्रकाशी संपर्क साधा.'
@@ -343,11 +375,25 @@ export const currentUserService = {
     }
 
     // Query Employee Master
-    const { data: employeeRow, error: empErr } = await supabase!
+    let { data: employeeRow, error: empErr } = await supabase!
       .from('employee_master')
       .select('*')
       .eq('id', rawProfile.employee_id)
       .maybeSingle();
+
+    // Fallback if not found in Supabase: check masterDataService
+    if (!employeeRow) {
+      try {
+        const localEmployees = await masterDataService.getEmployees();
+        const foundLocal = localEmployees.find((e: any) => e.id === rawProfile.employee_id);
+        if (foundLocal) {
+          employeeRow = foundLocal;
+          empErr = null;
+        }
+      } catch (localErr) {
+        console.warn('[currentUserService] Fallback to masterDataService failed:', localErr);
+      }
+    }
 
     if (empErr || !employeeRow) {
       console.error('[currentUserService] Error fetching employee record:', empErr);

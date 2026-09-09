@@ -181,8 +181,6 @@ const AppContent: React.FC = () => {
         return <TemplateFieldsPage onNavigate={setCurrentPage} templateId={selectedTemplateId || storage.getItem('selectedTemplateId') || ''} />;
       case 'dynamic-register':
         return <DynamicRegisterPage onNavigate={setCurrentPage} templateId={selectedTemplateId || storage.getItem('selectedTemplateId') || ''} />;
-      case 'dynamic-report':
-        return <DynamicReportPage onNavigate={setCurrentPage} templateId={selectedTemplateId || storage.getItem('selectedTemplateId') || ''} />;
       default:
         return <DashboardPage onNavigate={setCurrentPage} />;
     }

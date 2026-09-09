@@ -7,7 +7,7 @@ export enum AppUserRole {
 
 export interface UserProfileEntity {
   id: string; // UUID primary key
-  auth_user_id: string; // UUID unique not null
+  auth_user_id?: string | null; // UUID unique, references auth.users(id)
   employee_id?: string | null; // UUID foreign key to employee_master
   role: 'PHC_CONTROLLER' | 'SUBCENTRE_EMPLOYEE' | string;
   phc_id?: string | null; // UUID foreign key to phc_master

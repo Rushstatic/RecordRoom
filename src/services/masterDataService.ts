@@ -724,7 +724,7 @@ export const masterDataService = {
       const now = new Date().toISOString();
       const profileRow = {
         id: generateUUID(),
-        auth_user_id: generateUUID(),
+        auth_user_id: null,
         employee_id: employee.id,
         role: isCtrl ? 'PHC_CONTROLLER' : 'SUBCENTRE_EMPLOYEE',
         phc_id: sc ? sc.phc_id : null,

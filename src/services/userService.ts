@@ -240,7 +240,7 @@ export const userService = {
     const now = new Date().toISOString();
     let profileToInsert: UserProfileEntity = {
       id: generateUuid(),
-      auth_user_id: authUserId || generateUuid(),
+      auth_user_id: authUserId || null,
       role: isController ? AppUserRole.PHC_CONTROLLER : AppUserRole.SUBCENTRE_EMPLOYEE,
       email: autoEmail,
       mobile: employee.mobile_number || undefined,

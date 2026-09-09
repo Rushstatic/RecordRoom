@@ -3,21 +3,27 @@ import nodemailer from 'nodemailer';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 
 dotenv.config();
+
+declare const IS_PRODUCTION_BUILD: boolean | undefined;
 
 async function startServer() {
   const app = express();
 
-  // Determine environment:
-  // In development inside AI Studio sandbox, DEFAULT_APP_PORT is 3000 and NODE_ENV !== 'production'
-  const isDev = process.env.NODE_ENV !== 'production' && Boolean(process.env.DEFAULT_APP_PORT);
+  // Detect whether running in production mode:
+  // - Compiled bundle with IS_PRODUCTION_BUILD=true
+  // - NODE_ENV is set to 'production'
+  // - Running inside Cloud Run (process.env.K_SERVICE is present)
+  // - File path includes 'dist'
+  const isProd =
+    (typeof IS_PRODUCTION_BUILD !== 'undefined' && Boolean(IS_PRODUCTION_BUILD)) ||
+    process.env.NODE_ENV === 'production' ||
+    Boolean(process.env.K_SERVICE) ||
+    (typeof __filename !== 'undefined' && __filename.includes('dist'));
 
-  // In AI Studio sandbox, DEFAULT_APP_PORT=3000 is required by the nginx proxy layer.
-  // In deployed Cloud Run production, Cloud Run injects PORT (defaults to 8080) and sends traffic to it.
-  const PORT = process.env.DEFAULT_APP_PORT
-    ? parseInt(process.env.DEFAULT_APP_PORT, 10)
-    : (process.env.PORT ? parseInt(process.env.PORT, 10) : (isDev ? 3000 : 8080));
+  const isDev = !isProd;
 
   app.use(cors());
   app.use(express.json());
@@ -124,26 +130,60 @@ async function startServer() {
     } catch (viteError) {
       console.error('Failed to start Vite dev server:', viteError);
     }
+
+    // In dev container, the server must listen on port 3000 to work with nginx reverse proxy
+    const devPort = 3000;
+    const server = app.listen(devPort, '0.0.0.0', () => {
+      console.log(`Server running in development mode on http://0.0.0.0:${devPort}`);
+    });
+
+    process.on('SIGTERM', () => {
+      server.close(() => process.exit(0));
+    });
   } else {
-    const distPath = path.join(process.cwd(), 'dist');
+    const cwdDist = path.join(process.cwd(), 'dist');
+    const localDist = typeof __dirname !== 'undefined' ? __dirname : cwdDist;
+    const distPath = fs.existsSync(path.join(cwdDist, 'index.html'))
+      ? cwdDist
+      : (fs.existsSync(path.join(localDist, 'index.html')) ? localDist : cwdDist);
+
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
-  }
 
-  const server = app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://0.0.0.0:${PORT} (Mode: ${isDev ? 'development' : 'production'})`);
-  });
+    // In production (Cloud Run), listen on process.env.PORT (defaults to 8080)
+    const primaryPort = process.env.PORT ? parseInt(process.env.PORT, 10) : 8080;
+    const activeServers: any[] = [];
 
-  // Graceful termination for Cloud Run container lifecycle
-  process.on('SIGTERM', () => {
-    console.log('SIGTERM signal received: shutting down HTTP server gracefully');
-    server.close(() => {
-      console.log('HTTP server closed');
-      process.exit(0);
+    const primaryServer = app.listen(primaryPort, '0.0.0.0', () => {
+      console.log(`Production server listening on http://0.0.0.0:${primaryPort}`);
     });
-  });
+    activeServers.push(primaryServer);
+
+    // If primaryPort is not 3000, also attempt to listen on 3000 for any internal proxy routing
+    if (primaryPort !== 3000) {
+      try {
+        const secondaryServer = app.listen(3000, '0.0.0.0', () => {
+          console.log(`Production secondary listener active on http://0.0.0.0:3000`);
+        });
+        secondaryServer.on('error', (err: any) => {
+          console.warn(`Secondary port 3000 not bound (${err.message}) - continuing with primary port ${primaryPort}`);
+        });
+        activeServers.push(secondaryServer);
+      } catch (err: any) {
+        console.warn(`Could not start secondary port 3000:`, err.message);
+      }
+    }
+
+    process.on('SIGTERM', () => {
+      console.log('SIGTERM signal received: shutting down HTTP server gracefully');
+      activeServers.forEach(s => {
+        try { s.close(); } catch {}
+      });
+      setTimeout(() => process.exit(0), 1000);
+    });
+  }
 }
 
 startServer();

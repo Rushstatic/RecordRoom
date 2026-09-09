@@ -168,11 +168,23 @@ export const authService = {
         if (authUser) {
           // Find user profile from user_profiles table
           let profileEntity = await userService.getProfileByAuthId(authUser.id);
-          if (!profileEntity && authUser.email) {
-            profileEntity = await userService.getProfileByEmailOrMobile(authUser.email);
+          if (!profileEntity) {
+            profileEntity = await userService.getProfileByEmailOrMobile(authUser.email || authUser.phone || rawId);
           }
 
           if (profileEntity) {
+            // Auto-link auth_user_id to user_profiles if missing or mismatched
+            if (profileEntity.auth_user_id !== authUser.id) {
+              try {
+                await supabase
+                  .from('user_profiles')
+                  .update({ auth_user_id: authUser.id, last_login_at: new Date().toISOString() })
+                  .eq('id', profileEntity.id);
+                profileEntity.auth_user_id = authUser.id;
+              } catch (linkErr) {
+                console.warn('[authService] Could not persist auth_user_id linkage:', linkErr);
+              }
+            }
             if (!profileEntity.is_active) {
               await supabase.auth.signOut();
               auditService.logAction({
