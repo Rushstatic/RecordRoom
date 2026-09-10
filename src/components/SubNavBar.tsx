@@ -15,9 +15,19 @@ import {
   ShieldCheck,
   Database,
   Layers,
+  Terminal,
+  Wrench,
+  ServerCrash,
+  Activity,
+  FileText,
 } from 'lucide-react';
 import { PageId } from '../types';
-import { MainNavTabId, DATA_ENTRY_SUB_ITEMS, REPORTS_SUB_ITEMS } from '../types/navigation';
+import {
+  MainNavTabId,
+  DATA_ENTRY_SUB_ITEMS,
+  REPORTS_SUB_ITEMS,
+  ADMIN_SUB_ITEMS,
+} from '../types/navigation';
 import { useAuth } from '../hooks/useAuth';
 
 interface SubNavBarProps {
@@ -42,7 +52,14 @@ export const SubNavBar: React.FC<SubNavBarProps> = ({
     return null; // Dashboard is a single dedicated monitoring view
   }
 
-  const items = currentTab === 'data-entry' ? DATA_ENTRY_SUB_ITEMS : REPORTS_SUB_ITEMS;
+  const items =
+    currentTab === 'data-entry'
+      ? DATA_ENTRY_SUB_ITEMS
+      : currentTab === 'reports'
+      ? REPORTS_SUB_ITEMS
+      : currentTab === 'admin'
+      ? ADMIN_SUB_ITEMS
+      : [];
 
   const renderIcon = (iconName: string, active: boolean) => {
     const iconClasses = `w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${
@@ -78,6 +95,16 @@ export const SubNavBar: React.FC<SubNavBarProps> = ({
         return <ShieldCheck className={iconClasses} />;
       case 'Database':
         return <Database className={iconClasses} />;
+      case 'Terminal':
+        return <Terminal className={iconClasses} />;
+      case 'Wrench':
+        return <Wrench className={iconClasses} />;
+      case 'ServerCrash':
+        return <ServerCrash className={iconClasses} />;
+      case 'Activity':
+        return <Activity className={iconClasses} />;
+      case 'FileText':
+        return <FileText className={iconClasses} />;
       default:
         return <Layers className={iconClasses} />;
     }
@@ -89,7 +116,11 @@ export const SubNavBar: React.FC<SubNavBarProps> = ({
         {/* Module Title / Pill Category */}
         <div className="hidden md:flex items-center gap-2 text-xs font-bold text-slate-700 shrink-0">
           <span className="p-1 rounded-md bg-emerald-100 text-emerald-800">
-            {currentTab === 'data-entry' ? '📝 Data Entry' : '📊 Reports'}
+            {currentTab === 'data-entry'
+              ? '📝 Data Entry'
+              : currentTab === 'reports'
+              ? '📊 Reports'
+              : '⚙️ Admin'}
           </span>
           <span className="text-slate-400">/</span>
           <span className="text-slate-500 text-[11px] font-medium">विभाग निवडा:</span>
@@ -98,8 +129,8 @@ export const SubNavBar: React.FC<SubNavBarProps> = ({
         {/* Scrollable Sub-items Tab Bar */}
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 w-full md:w-auto">
           {items.map((item) => {
-            // For controller-only items like user-management or phc-master, show differently or filter
-            if (item.isControllerOnly && !isPhcController && item.id === 'user-management') {
+            // Hide controller-only items from non-controllers
+            if (item.isControllerOnly && !isPhcController) {
               return null;
             }
 

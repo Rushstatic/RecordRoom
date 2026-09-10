@@ -1,6 +1,7 @@
 import React from 'react';
-import { LayoutDashboard, FileEdit, BarChart3 } from 'lucide-react';
-import { MainNavTabId, MAIN_NAV_TABS } from '../types/navigation';
+import { LayoutDashboard, FileEdit, BarChart3, ShieldCheck } from 'lucide-react';
+import { MainNavTabId, getMainTabsForRole } from '../types/navigation';
+import { useAuth } from '../hooks/useAuth';
 
 interface MobileBottomNavProps {
   currentTab: MainNavTabId;
@@ -15,13 +16,16 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   pendingDraftsCount = 0,
   pendingSamplesCount = 0,
 }) => {
+  const { role } = useAuth();
+  const navTabs = getMainTabsForRole(role);
+
   return (
     <div
       id="mobile-bottom-navigation-bar"
       className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-lg px-2 py-1.5 safe-area-pb"
     >
       <div className="flex items-center justify-around">
-        {MAIN_NAV_TABS.map((tab) => {
+        {navTabs.map((tab) => {
           const isActive = currentTab === tab.id;
 
           const renderIcon = () => {
@@ -32,14 +36,16 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
             };
 
             switch (tab.id) {
-              case 'dashboard':
-                return <LayoutDashboard {...iconProps} />;
               case 'data-entry':
                 return <FileEdit {...iconProps} />;
               case 'reports':
                 return <BarChart3 {...iconProps} />;
-              default:
+              case 'admin':
+                return <ShieldCheck {...iconProps} />;
+              case 'dashboard':
                 return <LayoutDashboard {...iconProps} />;
+              default:
+                return <FileEdit {...iconProps} />;
             }
           };
 
@@ -71,11 +77,13 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
                   isActive ? 'font-bold text-emerald-900' : 'font-medium text-slate-600'
                 }`}
               >
-                {tab.id === 'dashboard'
-                  ? '🏠 Dashboard'
-                  : tab.id === 'data-entry'
+                {tab.id === 'data-entry'
                   ? '📝 Data Entry'
-                  : '📊 Reports'}
+                  : tab.id === 'reports'
+                  ? '📊 Reports'
+                  : tab.id === 'admin'
+                  ? '⚙️ Admin'
+                  : '🏠 Dashboard'}
               </span>
 
               {isActive && (

@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { PageId } from '../types';
-import { MainNavTabId, MAIN_NAV_TABS } from '../types/navigation';
+import { MainNavTabId, getMainTabsForRole } from '../types/navigation';
 import { MyAccountModal } from './auth/MyAccountModal';
 import { NetworkStatusIndicator } from './NetworkStatusIndicator';
 import { SyncIndicator } from './SyncIndicator';
@@ -104,9 +104,9 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* Center: Top 3 Main Navigation Tabs (Prominently visible on Desktop & Tablet) */}
+          {/* Center: Main Navigation Tabs (Prominently visible on Desktop & Tablet) */}
           <div className="hidden md:flex items-center gap-1.5 bg-black/25 p-1 rounded-xl border border-white/15 shadow-inner">
-            {MAIN_NAV_TABS.map((tab) => {
+            {getMainTabsForRole(role).map((tab) => {
               const isActive = currentTab === tab.id;
               return (
                 <button
@@ -120,15 +120,18 @@ export const Header: React.FC<HeaderProps> = ({
                       : 'text-emerald-100 hover:text-white hover:bg-white/10'
                   }`}
                 >
-                  {tab.id === 'dashboard' && <LayoutDashboard className="w-4 h-4" />}
                   {tab.id === 'data-entry' && <FileEdit className="w-4 h-4" />}
                   {tab.id === 'reports' && <BarChart3 className="w-4 h-4" />}
+                  {tab.id === 'admin' && <ShieldCheck className="w-4 h-4" />}
+                  {tab.id === 'dashboard' && <LayoutDashboard className="w-4 h-4" />}
                   <span>
-                    {tab.id === 'dashboard'
-                      ? '🏠 Dashboard'
-                      : tab.id === 'data-entry'
+                    {tab.id === 'data-entry'
                       ? '📝 Data Entry'
-                      : '📊 Reports'}
+                      : tab.id === 'reports'
+                      ? '📊 Reports'
+                      : tab.id === 'admin'
+                      ? '⚙️ Admin'
+                      : '🏠 Dashboard'}
                   </span>
                 </button>
               );

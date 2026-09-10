@@ -80,8 +80,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 
   const handleSelectTab = (tabId: MainNavTabId) => {
     setCurrentTab(tabId);
-    if (tabId === 'dashboard') {
-      onNavigate('dashboard');
+    if (tabId === 'admin') {
+      const parent = getParentTabForPage(currentPage);
+      if (parent !== 'admin') {
+        onNavigate('phc-master');
+      }
     } else if (tabId === 'data-entry') {
       // If currently not on a data entry page, default to daily-work
       const parent = getParentTabForPage(currentPage);
@@ -94,6 +97,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
       if (parent !== 'reports') {
         onNavigate('reports');
       }
+    } else if (tabId === 'dashboard') {
+      onNavigate('dashboard');
     }
   };
 
@@ -141,9 +146,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-2 shadow-2xs">
             <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-600">
               <span className="font-semibold text-emerald-800">
-                {currentTab === 'dashboard' && '🏠 Dashboard'}
                 {currentTab === 'data-entry' && '📝 Data Entry'}
                 {currentTab === 'reports' && '📊 Reports'}
+                {currentTab === 'admin' && '⚙️ Admin'}
+                {currentTab === 'dashboard' && '🏠 Dashboard'}
               </span>
               <span className="text-slate-400">/</span>
               <span className="capitalize font-medium text-slate-800 text-xs">
